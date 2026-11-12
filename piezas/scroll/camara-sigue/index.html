@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cámara que sigue</title>
+<link rel="stylesheet" href="../../../comun/kit.css">
+<!-- PIEZA: estilos -->
+<style>
+  .torre { position: relative; }
+  .torre-pin { position: sticky; top: 0; height: 100svh; overflow: hidden; background: #0e1112; }
+  .torre-cam { position: absolute; left: 0; top: 0; will-change: transform; }
+  .sala { position: absolute; border-radius: 4px; display: grid; place-items: start center; padding-top: 10%; color: #fff8; font: 600 clamp(20px, 4vw, 44px)/1 system-ui; }
+  .sala:nth-child(1) { background: linear-gradient(#5b4a6e, #2c2436); }
+  .sala:nth-child(2) { background: linear-gradient(#3d5d55, #1f302c); }
+  .sala:nth-child(3) { background: linear-gradient(#6e4a3a, #36241c); }
+  .hueco { position: absolute; background: repeating-linear-gradient(90deg, #1a1d1e 0 12px, #23282a 12px 24px); }
+  .jaula { position: absolute; border: 4px solid #b48a4a; border-top-width: 10px; background: repeating-linear-gradient(90deg, transparent 0 18px, #b48a4a99 18px 21px); }
+  .torre-ella { position: absolute; left: 0; top: 0; aspect-ratio: 1 / 2; background: var(--tira) 0 0 / auto 100% no-repeat; }
+  .torre-ella.gira { scale: -1 1; }
+</style>
+<!-- /PIEZA -->
+</head>
+<body data-titulo="Cámara que sigue al personaje" data-origen="Portfolio · Home (la torre)">
+<div class="kit-nota">
+  <h1>Cámara que sigue al personaje</h1>
+  <p>Un mundo dibujado en píxeles, más grande que la pantalla. El scroll hace que el personaje cruce cada sala, entre en el ascensor, baje con la cámara y salga por el otro lado (en zigzag). La cámara lo mantiene en el centro y se para en los bordes del edificio.</p>
+  <p>Toda la historia está en la tabla <code>PARTES</code>: qué pasa y cuánto scroll dura cada tramo. Cambiar la historia es cambiar esa tabla.</p>
+</div>
+
+<!-- PIEZA: html -->
+<section class="torre" data-torre>
+  <div class="torre-pin">
+    <div class="torre-cam" data-cam>
+      <div class="sala">Planta 1</div><div class="sala">Planta 2</div><div class="sala">Planta 3</div>
+      <div class="hueco" data-hueco="A"></div><div class="hueco" data-hueco="B"></div>
+      <div class="jaula" data-jaula="A"></div><div class="jaula" data-jaula="B"></div>
+      <div class="torre-ella" data-ella></div>
+    </div>
+  </div>
+</section>
+<!-- /PIEZA -->
+
+<p class="kit-fin">Planta baja</p>
+
+<script src="../../../comun/figura.js"></script>
+<script>document.documentElement.style.setProperty('--tira', `url(${figuraDemo().src})`);</script>
+<!-- PIEZA: script -->
+<script>
+(() => {
+  const torre = document.querySelector('[data-torre]');
+  const pin = torre.firstElementChild, cam = torre.querySelector('[data-cam]');
+  const salas = [...torre.querySelectorAll('.sala')];
+  const [huecoA, huecoB] = torre.querySelectorAll('[data-hueco]');
+  const [jaulaA, jaulaB] = torre.querySelectorAll('[data-jaula]');
+  const ella = torre.querySelector('[data-ella]');
+  const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+  const mix = (a, b, t) => a + (b - a) * t;
+  const soft = t => t * t * (3 - 2 * t);
+
+  // La historia: [planta, qué pasa, cuánto scroll (en pantallas), desde, hasta]
+  const PARTES = [
+    [0, 'anda', .6, 'inicio', 'A'], [0, 'baja', .4, 'A'],
+    [1, 'anda', .4, 'A', 'cartel'], [1, 'lee', .4, 'cartel'], [1, 'anda', .4, 'cartel', 'B'], [1, 'baja', .4, 'B'],
+    [2, 'anda', .7, 'B', 'fin']
+  ];
+  let total = 0;
+  const partes = PARTES.map(([planta, tipo, largo, desde, hasta]) => ({ planta, tipo, desde, hasta, a: total, b: (total += largo) }));
+  torre.style.height = `${(total + 1) * 100}svh`;
+
+  // El mundo en píxeles: H alto de sala, W ancho, FH separación entre plantas
+  let vw, H, W, FH, hW, jW, P = {};
+  const caja = (el, l, t, w, h) => Object.assign(el.style, { left: `${l}px`, top: `${t}px`, width: `${w}px`, height: `${h}px` });
+  const medir = () => {
+    vw = pin.clientWidth; H = pin.clientHeight; W = Math.max(vw * 1.6, 900); FH = H * 1.1;
+    hW = H * .5; jW = H * .32;
+    salas.forEach((s, i) => caja(s, 0, i * FH, W, H));
+    caja(huecoA, W, 0, hW, FH + H);                // A a la derecha: planta 1 → 2
+    caja(huecoB, -hW, FH, hW, FH + H);             // B a la izquierda: planta 2 → 3
+    [jaulaA, jaulaB].forEach(j => { j.style.width = `${jW}px`; j.style.height = `${H * .6}px`; });
+    jaulaA.style.left = `${W + hW / 2 - jW / 2}px`;
+    jaulaB.style.left = `${-hW / 2 - jW / 2}px`;
+    ella.style.height = `${H * .4}px`;
+    P = { inicio: vw * .2, A: W + hW / 2, B: -hW / 2, cartel: W * .5, fin: W * .8 };
+  };
+  medir();
+  addEventListener('resize', medir);
+
+  const frame = () => {
+    const r = torre.getBoundingClientRect();
+    const u = clamp(-r.top / Math.max(1, r.height - innerHeight)) * total;
+    const k = Math.max(0, partes.findIndex(p => u < p.b));
+    const parte = u >= total ? partes[partes.length - 1] : partes[k];
+    const t = clamp((u - parte.a) / (parte.b - parte.a));
+    const sh = ella.offsetHeight;
+    let x = P[parte.desde], dibujo = 9, gira = false, planta = parte.planta;
+
+    if (parte.tipo === 'anda') {
+      const a = P[parte.hasta];
+      if (t > 0 && t < 1) { gira = a < x; dibujo = Math.floor(Math.abs(a - x) * t / (sh * .17)) % 6; }
+      else dibujo = 6;
+      x = mix(x, a, t);
+    } else if (parte.tipo === 'baja') { planta += soft(t); dibujo = 6; }
+    else if (parte.tipo === 'lee') dibujo = 6 + Math.min(2, Math.floor(t * 6));
+
+    // La cámara la deja en el centro, sin salirse del edificio
+    const lo = -hW, hi = W + hW - vw;
+    cam.style.transform = `translate3d(${-clamp(x - vw / 2, lo, Math.max(lo, hi))}px,${-planta * FH}px,0)`;
+
+    // Cada jaula está en su planta y baja con ella cuando le toca
+    const baja = parte.tipo === 'baja' ? soft(t) : 0;
+    const pA = k < 1 ? 0 : k === 1 ? baja : 1;
+    const pB = k < 5 ? 1 : k === 5 ? 1 + baja : 2;
+    jaulaA.style.top = `${pA * FH + H * .4 - 4}px`;
+    jaulaB.style.top = `${pB * FH + H * .4 - 4}px`;
+
+    ella.classList.toggle('gira', gira);
+    ella.style.backgroundPosition = `${dibujo * 100 / 11}% 0`;
+    ella.style.transform = `translate3d(${x - ella.offsetWidth / 2}px,${planta * FH + H - sh - 4}px,0)`;
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+})();
+</script>
+<!-- /PIEZA -->
+<script src="../../../comun/kit.js"></script>
+</body>
+</html>

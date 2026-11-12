@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Palanca y engranajes</title>
+<link rel="stylesheet" href="../../../comun/kit.css">
+<!-- PIEZA: estilos -->
+<style>
+  .taller { position: relative; height: 500svh; }
+  .taller-pin { position: sticky; top: 0; height: 100svh; overflow: hidden; display: grid; grid-template-rows: auto 1fr; gap: 4svh; padding: 10svh 16px 6svh; background: radial-gradient(circle at 50% 30%, #3a2c20, #120d09 75%); color: #f1e6cf; }
+  .etapa { min-height: 5.5em; text-align: center; max-width: 520px; margin: 0 auto; }
+  .etapa h2 { margin: 0 0 6px; font: 600 clamp(22px, 4vw, 34px)/1.1 Georgia, serif; }
+  .etapa p { margin: 0; opacity: .75; }
+  .etapa[hidden] { display: none; }
+  .tren { display: flex; align-items: center; justify-content: center; gap: 0; position: relative; }
+  .rueda { width: min(15vw, 120px); margin: 0 calc(min(15vw, 120px) * -.07); fill: #b48a4a; transition: filter .3s; }
+  .rueda.viva { filter: drop-shadow(0 0 10px #ffc97a88); }
+  .palanca { position: relative; width: 18px; height: min(22vw, 160px); margin-right: 5vw; background: #6b4a2b; border-radius: 9px; transform-origin: 50% 100%; transform: rotate(calc(-35deg + var(--tiro, 0) * 70deg)); }
+  .palanca::before { content: ""; position: absolute; top: -18px; left: 50%; width: 36px; height: 36px; translate: -50% 0; border-radius: 50%; background: #c0392b; }
+  .candado { width: 54px; height: 46px; margin-left: 4vw; background: #8d7b5c; border-radius: 8px; position: relative; }
+  .candado::before { content: ""; position: absolute; left: 10px; right: 10px; top: -26px; height: 34px; border: 7px solid #8d7b5c; border-bottom: 0; border-radius: 20px 20px 0 0; transition: translate .4s; }
+  .candado.abierto::before { translate: 0 -12px; }
+</style>
+<!-- /PIEZA -->
+</head>
+<body data-titulo="Palanca que engancha engranajes" data-origen="Portfolio · Services (How I work)">
+<div class="kit-nota">
+  <h1>Palanca que engancha engranajes</h1>
+  <p>Cada tirón de palanca (con el scroll) sube un engranaje más al tren y los hace girar a todos, siempre engranados. Cada engranaje es una etapa y su texto solo aparece cuando ese engranaje ha subido. Con el último, salta el candado.</p>
+  <p>Los engranajes tienen 16 dientes: girar 90° por etapa los mantiene encajados, y los pares giran al revés (<code>MESH − ángulo</code>).</p>
+</div>
+
+<!-- PIEZA: html -->
+<section class="taller" data-taller>
+  <div class="taller-pin">
+    <div>
+      <div class="etapa"><h2>1. Escuchar</h2><p>Qué necesita el negocio y para quién es.</p></div>
+      <div class="etapa" hidden><h2>2. Ordenar</h2><p>Estructura, textos y lo que importa primero.</p></div>
+      <div class="etapa" hidden><h2>3. Diseñar</h2><p>Cómo se ve y cómo se mueve.</p></div>
+      <div class="etapa" hidden><h2>4. Construir</h2><p>Código a mano, rápido y accesible.</p></div>
+      <div class="etapa" hidden><h2>5. Medir</h2><p>SEO, velocidad y lo que hay que mejorar.</p></div>
+    </div>
+    <div class="tren">
+      <div class="palanca" data-palanca></div>
+      <svg class="rueda" viewBox="0 0 100 100"><use href="#rueda"/></svg>
+      <svg class="rueda" viewBox="0 0 100 100"><use href="#rueda"/></svg>
+      <svg class="rueda" viewBox="0 0 100 100"><use href="#rueda"/></svg>
+      <svg class="rueda" viewBox="0 0 100 100"><use href="#rueda"/></svg>
+      <svg class="rueda" viewBox="0 0 100 100"><use href="#rueda"/></svg>
+      <div class="candado" data-candado></div>
+    </div>
+  </div>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><g id="rueda"><path d="M50 6l6 12 9-2 3-13 12 7-5 12 7 7 12-5 7 12-13 3-2 9 12 6v0l-12 6 2 9 13 3-7 12-12-5-7 7 5 12-12 7-3-13-9-2-6 12-6-12-9 2-3 13-12-7 5-12-7-7-12 5-7-12 13-3 2-9-12-6 12-6-2-9-13-3 7-12 12 5 7-7-5-12 12-7 3 13 9 2z"/><circle cx="50" cy="50" r="11" fill="#2b1d13"/></g></defs></svg>
+</section>
+<!-- /PIEZA -->
+
+<p class="kit-fin">Sigue la página</p>
+
+<!-- PIEZA: script -->
+<script>
+(() => {
+  const taller = document.querySelector('[data-taller]');
+  const ruedas = [...taller.querySelectorAll('.rueda')];
+  const etapas = [...taller.querySelectorAll('.etapa')];
+  const palanca = taller.querySelector('[data-palanca]'), candado = taller.querySelector('[data-candado]');
+  const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+  const soft = t => t * t * (3 - 2 * t);
+  const PASO = 90, MESH = 191.25;   // 16 dientes: un cuarto de vuelta por etapa
+  let suave = 0, vista = -2;
+
+  const frame = () => {
+    const r = taller.getBoundingClientRect();
+    suave += (clamp(-r.top / Math.max(1, r.height - innerHeight)) - suave) * .1;
+    const n = ruedas.length;
+    const x = clamp(suave / .9) * n;           // el último 10 % abre el candado
+    const en = Math.min(n - 1, Math.floor(x)), parte = x - en;
+
+    // El texto espera a la palanca: una etapa solo se ve cuando su engranaje ha subido
+    const etapa = parte > .1 || x >= n ? en : en - 1;
+    if (etapa !== vista) { etapas.forEach((e, i) => { e.hidden = i !== Math.max(0, etapa); }); vista = etapa; }
+
+    // El tirón: baja, aguanta y vuelve (el último se queda abajo)
+    const tiro = parte < .45 ? soft(parte / .45) : parte < .82 || en === n - 1 ? 1 : 1 - soft((parte - .82) / .18);
+    palanca.style.setProperty('--tiro', tiro.toFixed(3));
+
+    const girado = en + soft(clamp((parte - .18) / .27));
+    ruedas.forEach((rd, i) => {
+      const sube = i < en ? 1 : i > en ? 0 : soft(clamp(parte / .18));
+      const a = Math.max(girado, i) * PASO;
+      rd.style.transform = `translate3d(0,${(1 - sube) * 22}%,0) rotate(${i % 2 ? MESH - a : a}deg)`;
+      rd.style.opacity = .35 + sube * .65;
+      rd.classList.toggle('viva', sube > .5);
+    });
+    candado.classList.toggle('abierto', suave > .93);
+    requestAnimationFrame(frame);
+  };
+  frame();
+})();
+</script>
+<!-- /PIEZA -->
+<script src="../../../comun/kit.js"></script>
+</body>
+</html>

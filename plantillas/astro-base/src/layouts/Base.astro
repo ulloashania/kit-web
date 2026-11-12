@@ -1,0 +1,57 @@
+---
+import '../styles/global.css';
+import { site, links } from '../data/site.js';
+
+const { title, description } = Astro.props;
+const current = Astro.url.pathname;
+---
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title ? `${title} · ${site.name}` : site.name}</title>
+    <meta name="description" content={description || site.tagline} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="wordmark" href="/">{site.name}</a>
+      <nav aria-label="Principal">
+        {links.map(([href, label]) => (
+          <a href={href} aria-current={current === href ? 'page' : undefined}>{label}</a>
+        ))}
+      </nav>
+    </header>
+
+    <main><slot /></main>
+
+    <footer class="site-footer">
+      <span>{site.name}</span>
+      <a href={`mailto:${site.email}`}>{site.email}</a>
+    </footer>
+
+    <script>
+      // Cualquier elemento con data-reveal aparece suave la primera vez que entra en pantalla
+      if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        const io = new IntersectionObserver((entries) => entries.forEach((e) => {
+          if (e.isIntersecting) { e.target.classList.add('is-visible'); io.unobserve(e.target); }
+        }), { rootMargin: '0px 0px -8% 0px' });
+        document.querySelectorAll('[data-reveal]').forEach((el) => { el.classList.add('will-reveal'); io.observe(el); });
+      }
+    </script>
+  </body>
+</html>
+
+<style>
+  .site-header { position: absolute; inset: 0 0 auto; z-index: 1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .25rem 1.5rem; padding: clamp(1.25rem, 2.5vw, 2.25rem) var(--edge); color: var(--blanco); }
+  .site-header::after { content: ''; position: absolute; right: var(--edge); bottom: 0; left: var(--edge); height: 1px; background: rgb(255 255 255 / .4); }
+  .wordmark { font: 1.5rem/1 var(--display); text-decoration: none; white-space: nowrap; }
+  nav { display: flex; flex-wrap: wrap; gap: .25rem clamp(1.25rem, 2.5vw, 2.5rem); }
+  nav a { font-weight: 500; text-decoration-color: transparent; text-decoration-thickness: 2px; text-underline-offset: .3em; }
+  nav a:hover { text-decoration-color: currentColor; }
+  nav a[aria-current] { text-decoration-color: var(--acento); }
+  .site-footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .25rem 1.5rem; padding: 1.5rem var(--edge); background: var(--oscuro); color: var(--claro); }
+</style>

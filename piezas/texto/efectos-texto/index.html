@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Efectos de texto</title>
+<link rel="stylesheet" href="../../../comun/kit.css">
+<!-- PIEZA: estilos -->
+<style>
+  /* 1. Titular que se escribe letra a letra (y engorda cerca del ratón si la letra es variable) */
+  [data-letras] { font: 800 clamp(40px, 9vw, 110px)/1 "Bricolage Grotesque", system-ui; margin: 0; }
+  [data-letras] .w { display: inline-block; white-space: nowrap; }
+  [data-letras] .k { display: inline-block; opacity: 0; translate: 0 .4em; transition: opacity .5s, translate .7s cubic-bezier(.2, 1.4, .4, 1), font-weight .25s; transition-delay: calc(var(--i) * 35ms), calc(var(--i) * 35ms), 0s; }
+  [data-letras].in .k { opacity: 1; translate: none; }
+  /* 2. Borde pintado: un filtro SVG que «rasga» el contorno */
+  .pintado { filter: url(#pintado); }
+  /* 3. Frase que se enciende palabra a palabra con el scroll */
+  [data-frase] p { font: 600 clamp(26px, 4.4vw, 48px)/1.25 Georgia, serif; max-width: 900px; margin: 0 auto; }
+  [data-frase] .sw { opacity: calc(.15 + var(--o, 0) * .85); transition: opacity .2s; }
+  /* 4. Aparecer al entrar en pantalla */
+  [data-r] { opacity: 0; translate: 0 28px; transition: opacity .8s, translate .8s cubic-bezier(.2, .8, .2, 1); }
+  [data-r].in { opacity: 1; translate: none; }
+  /* 5. Cinta de texto: avanza sola y se inclina con la velocidad del scroll */
+  .cinta-texto { overflow: hidden; padding: 24px 0; border-block: 1px solid var(--linea); }
+  [data-cinta-texto] { display: flex; width: max-content; gap: 48px; font: 700 clamp(28px, 5vw, 56px)/1 system-ui; white-space: nowrap; will-change: transform; }
+  @media (prefers-reduced-motion: reduce) { [data-letras] .k, [data-r] { opacity: 1; translate: none; transition: none; } }
+</style>
+<!-- /PIEZA -->
+</head>
+<body data-titulo="Efectos de texto" data-origen="Portfolio · todas las páginas">
+<div class="kit-nota">
+  <h1>Efectos de texto</h1>
+  <p>Seis efectos que se pueden usar por separado: titular letra a letra (que engorda cerca del ratón si la letra es variable), borde pintado, frase que se enciende con el scroll, aparecer al entrar, números que cuentan y cinta de texto que reacciona al scroll. Todos dejan el texto completo para los lectores de pantalla.</p>
+</div>
+
+<!-- PIEZA: html -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="pintado"><feTurbulence type="fractalNoise" baseFrequency=".04" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="5"/></filter></svg>
+
+<section style="padding:8svh 16px;text-align:center">
+  <h2 data-letras class="pintado">Hola, soy Shania</h2>
+</section>
+
+<section style="padding:30svh 16px" data-frase>
+  <p>Diseño webs que saben qué decir: cada palabra se enciende cuando llegas a ella con el scroll.</p>
+</section>
+
+<section style="display:flex;flex-wrap:wrap;justify-content:center;gap:48px;padding:10svh 16px;text-align:center">
+  <div data-r><b style="font-size:56px" data-cuenta="96">0</b><p>rendimiento</p></div>
+  <div data-r><b style="font-size:56px" data-cuenta="20">0+</b><p>años de oficio</p></div>
+  <div data-r><b style="font-size:56px" data-cuenta="100">0%</b><p>a medida</p></div>
+</section>
+
+<div class="cinta-texto"><div data-cinta-texto><span>Diseño web · SEO · Contenido · Marca ·</span><span>Diseño web · SEO · Contenido · Marca ·</span><span>Diseño web · SEO · Contenido · Marca ·</span></div></div>
+<!-- /PIEZA -->
+<p class="kit-fin">Fin</p>
+
+<!-- PIEZA: script -->
+<script>
+(() => {
+  const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+  const $$ = s => [...document.querySelectorAll(s)];
+
+  // 1. Partir los titulares en letras (el texto entero queda en aria-label)
+  let n = 0;
+  $$('[data-letras]').forEach(h => {
+    const texto = h.textContent;
+    h.setAttribute('aria-label', texto);
+    h.innerHTML = texto.split(' ').map(p => `<span class="w" aria-hidden="true">${[...p].map(ch => `<span class="k" style="--i:${n++}">${ch}</span>`).join('')}</span>`).join(' ');
+  });
+
+  // 3. Partir la frase en palabras
+  const frase = document.querySelector('[data-frase] p');
+  let palabras = [];
+  if (frase) {
+    frase.setAttribute('aria-label', frase.textContent);
+    frase.innerHTML = frase.textContent.split(' ').map(p => `<span class="sw" aria-hidden="true">${p}</span>`).join(' ');
+    palabras = [...frase.querySelectorAll('.sw')];
+  }
+
+  // 4. Aparecer al entrar (vale para [data-r] y para los titulares)
+  const aparece = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); aparece.unobserve(e.target); } }), { rootMargin: '0px 0px -8% 0px' });
+  $$('[data-r],[data-letras]').forEach(el => aparece.observe(el));
+
+  // 5. Números que cuentan hasta su valor al verse
+  const ease = t => 1 - Math.pow(1 - t, 3);
+  const cuenta = new IntersectionObserver(es => es.forEach(e => {
+    if (!e.isIntersecting) return;
+    cuenta.unobserve(e.target);
+    const fin = +e.target.dataset.cuenta, resto = e.target.textContent.replace(/\d/g, '');
+    if (quieto) { e.target.textContent = fin + resto; return; }
+    const ini = performance.now();
+    const tic = t => { const p = clamp((t - ini) / 1100); e.target.textContent = Math.round(ease(p) * fin) + resto; if (p < 1) requestAnimationFrame(tic); };
+    requestAnimationFrame(tic);
+  }), { threshold: .6 });
+  $$('[data-cuenta]').forEach(el => cuenta.observe(el));
+
+  if (quieto) { palabras.forEach(w => w.style.setProperty('--o', 1)); return; }
+
+  // 3 y 6. Cada fotograma: frase según el scroll y cinta según la velocidad del scroll
+  const cinta = document.querySelector('[data-cinta-texto]');
+  let antes = scrollY, vel = 0, desp = 0;
+  const frame = () => {
+    if (palabras.length) {
+      const r = frase.getBoundingClientRect();
+      const p = clamp((innerHeight * .85 - r.top) / (r.height + innerHeight * .35));
+      palabras.forEach((w, i) => w.style.setProperty('--o', clamp(p * (palabras.length + 2) - i).toFixed(2)));
+    }
+    vel += (scrollY - antes - vel) * .12; antes = scrollY;
+    if (cinta) {
+      desp -= .6 + Math.abs(vel) * .25;
+      const vuelta = cinta.scrollWidth / 3;
+      if (-desp > vuelta) desp += vuelta;
+      cinta.style.transform = `translate3d(${desp}px,0,0) skewX(${clamp(vel * -.25, -10, 10)}deg)`;
+    }
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+
+  // 1b. Letras que engordan cerca del ratón (necesita una letra variable, como Bricolage Grotesque)
+  if (!matchMedia('(hover: hover)').matches) return;
+  const letras = $$('.k').map(el => ({ el, peso: 800 }));
+  let tx = 0, ty = 0, pendiente = false;
+  const forma = () => {
+    pendiente = false;
+    letras.forEach(l => {
+      const b = l.el.getBoundingClientRect();
+      if (b.bottom < 0 || b.top > innerHeight) return;
+      const d = Math.hypot(tx - (b.left + b.width / 2), ty - (b.top + b.height / 2));
+      const peso = Math.round(400 + 400 * clamp(d / 210));
+      if (peso !== l.peso) { l.peso = peso; l.el.style.fontWeight = peso; }
+    });
+  };
+  addEventListener('pointermove', e => { tx = e.clientX; ty = e.clientY; if (!pendiente) { pendiente = true; requestAnimationFrame(forma); } }, { passive: true });
+})();
+</script>
+<!-- /PIEZA -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&display=swap">
+<script src="../../../comun/kit.js"></script>
+</body>
+</html>

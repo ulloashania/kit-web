@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Persiana y tambor</title>
+<link rel="stylesheet" href="../../../comun/kit.css">
+<!-- PIEZA: estilos -->
+<style>
+  .placas { display: flex; flex-wrap: wrap; gap: 32px; justify-content: center; padding: 0 16px 30svh; }
+  .placa { position: relative; width: min(340px, 100%); height: 230px; border-radius: 8px; background: #2b2620; color: #f1e6cf; border: 4px solid #b48a4a; overflow: hidden; transition: transform .3s; perspective: 900px; }
+  .placa-texto { position: absolute; inset: 0; padding: 26px; transition: opacity .3s; }
+  .placa-texto h2 { margin: 0 0 8px; font: 600 26px/1.1 Georgia, serif; }
+  .placa-texto p { margin: 0; opacity: .75; }
+  /* La persiana: listones que suben cuando la placa entra en pantalla */
+  .placa::after { content: ""; position: absolute; inset: 0; z-index: 4; background: repeating-linear-gradient(#5a4a36 0 18px, #3e3326 18px 22px); transform-origin: top; transition: transform .9s cubic-bezier(.7, 0, .2, 1); }
+  .placa.abierta::after { transform: scaleY(0); }
+  /* El tambor: caras de un prisma que gira en el eje X */
+  .tambor { position: absolute; inset: 14px; opacity: 0; transition: opacity .3s; transform-style: preserve-3d; }
+  .tambor-giro { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform .7s cubic-bezier(.3, 1.4, .5, 1); }
+  .tambor-giro a { position: absolute; inset: 0; display: grid; place-items: end start; padding: 12px; border-radius: 4px; background: var(--c); color: #fff; text-decoration: none; font-weight: 600; backface-visibility: hidden; }
+  .placa.ve .tambor { opacity: 1; }
+  .placa.ve .placa-texto { opacity: 0; }
+  .tambor-puntos { position: absolute; z-index: 3; bottom: 6px; left: 0; right: 0; display: flex; justify-content: center; gap: 6px; opacity: 0; }
+  .placa.ve .tambor-puntos { opacity: 1; }
+  .tambor-puntos i { width: 6px; height: 6px; border-radius: 50%; background: #fff6; }
+  .tambor-puntos i.on { background: #fff; }
+</style>
+<!-- /PIEZA -->
+</head>
+<body data-titulo="Persiana que se abre y tambor giratorio" data-origen="Portfolio · Services (letreros de la calle)">
+<div class="kit-nota">
+  <h1>Persiana y tambor giratorio</h1>
+  <p>La placa tiene una persiana que sube cuando entra en pantalla. Al pasar el ratón, el texto se cambia por un tambor que gira con los trabajos de esa placa: mover el ratón de izquierda a derecha elige el trabajo, y la placa se inclina un poco hacia el ratón. Si no mueves el ratón, el tambor sigue girando solo.</p>
+  <p>En el móvil (sin ratón) el tambor no aparece; en Portfolio un toque abría una vitrina con los ejemplos.</p>
+</div>
+
+<!-- PIEZA: html (los trabajos de cada placa van en .placa-trabajos) -->
+<div class="placas">
+  <article class="placa">
+    <div class="placa-texto"><h2>Diseño web</h2><p>Webs a medida, rápidas y con movimiento.</p></div>
+    <ul class="placa-trabajos" hidden>
+      <li><a href="#" style="--c:#c08a52">Lignum Domus</a></li>
+      <li><a href="#" style="--c:#3d5d55">The Campus</a></li>
+      <li><a href="#" style="--c:#6e4a3a">GoFacing</a></li>
+    </ul>
+  </article>
+  <article class="placa">
+    <div class="placa-texto"><h2>Contenido y marca</h2><p>Redes, vídeo, fotografía y diseño gráfico.</p></div>
+    <ul class="placa-trabajos" hidden>
+      <li><a href="#" style="--c:#5b4a6e">Social media</a></li>
+      <li><a href="#" style="--c:#2a3b40">Vídeo</a></li>
+      <li><a href="#" style="--c:#a87543">Fotografía</a></li>
+      <li><a href="#" style="--c:#8a5d33">Diseño gráfico</a></li>
+    </ul>
+  </article>
+</div>
+<!-- /PIEZA -->
+
+<!-- PIEZA: script -->
+<script>
+(() => {
+  const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+  const placas = [...document.querySelectorAll('.placa')];
+  // La persiana sube al entrar en pantalla
+  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('abierta'); io.unobserve(e.target); } }), { threshold: .5 });
+  placas.forEach(p => io.observe(p));
+  if (!matchMedia('(hover: hover)').matches) return;
+
+  placas.forEach(placa => {
+    const items = [...placa.querySelectorAll('.placa-trabajos a')];
+    const CARAS = Math.max(6, items.length), giro = 360 / CARAS;
+    const tambor = document.createElement('div'); tambor.className = 'tambor';
+    const rueda = document.createElement('div'); rueda.className = 'tambor-giro';
+    const caras = Array.from({ length: CARAS }, (_, i) => {
+      const a = items[i % items.length].cloneNode(true);
+      rueda.append(a);
+      return a;
+    });
+    tambor.append(rueda);
+    const puntos = document.createElement('div'); puntos.className = 'tambor-puntos';
+    puntos.innerHTML = items.map(() => '<i></i>').join('');
+    placa.append(tambor, puntos);
+
+    let paso = 0, elegido = -1, reloj = 0, dentro = false;
+    const coloca = () => {
+      const radio = tambor.offsetHeight / 2 / Math.tan(Math.PI / CARAS);
+      caras.forEach((f, i) => { f.style.transform = `rotateX(${-i * giro}deg) translateZ(${radio}px)`; });
+      rueda.style.transform = `translateZ(${-radio}px) rotateX(${paso * giro}deg)`;
+      const en = ((paso % items.length) + items.length) % items.length;
+      [...puntos.children].forEach((d, i) => d.classList.toggle('on', i === en));
+      caras.forEach((f, i) => { f.tabIndex = i === ((paso % CARAS) + CARAS) % CARAS ? 0 : -1; });
+    };
+    // Va por el camino corto hasta el trabajo elegido
+    const elige = i => {
+      if (i === elegido) return;
+      elegido = i;
+      const ahora = ((paso % items.length) + items.length) % items.length;
+      let d = i - ahora;
+      if (d > items.length / 2) d -= items.length;
+      if (d < -items.length / 2) d += items.length;
+      paso += d; coloca();
+    };
+    const solo = () => { clearTimeout(reloj); if (quieto || !dentro) return; reloj = setTimeout(() => { paso++; elegido = -1; coloca(); solo(); }, 2200); };
+    placa.addEventListener('pointerenter', () => { dentro = true; placa.classList.add('ve'); coloca(); solo(); });
+    placa.addEventListener('pointermove', e => {
+      const r = placa.getBoundingClientRect();
+      const x = clamp((e.clientX - r.left) / r.width), y = clamp((e.clientY - r.top) / r.height);
+      placa.style.transform = quieto ? '' : `perspective(1100px) rotateY(${(x - .5) * 11}deg) rotateX(${(.5 - y) * 9}deg)`;
+      elige(Math.min(items.length - 1, Math.floor(x * items.length)));
+      solo();
+    });
+    placa.addEventListener('pointerleave', () => { dentro = false; elegido = -1; clearTimeout(reloj); placa.style.transform = ''; placa.classList.remove('ve'); });
+  });
+})();
+</script>
+<!-- /PIEZA -->
+<script src="../../../comun/kit.js"></script>
+</body>
+</html>

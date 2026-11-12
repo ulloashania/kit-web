@@ -1,0 +1,12 @@
+# Datos de acceso
+.env
+.env.*
+
+# Dependencias y compilados
+node_modules/
+dist/
+.astro/
+
+# Sistema
+.DS_Store
+Thumbs.db

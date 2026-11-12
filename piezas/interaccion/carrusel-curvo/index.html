@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Carrusel curvo</title>
+<link rel="stylesheet" href="../../../comun/kit.css">
+<!-- PIEZA: estilos -->
+<style>
+  .curvo { position: relative; height: min(70svh, 560px); perspective: 1600px; overflow: hidden; }
+  .curvo-pista { position: absolute; left: 50%; top: 50%; transform-style: preserve-3d; }
+  .curvo-carta { position: absolute; width: min(56vw, 300px); aspect-ratio: 9 / 16; translate: -50% -50%; border-radius: 14px; background: var(--c); transition: transform .9s cubic-bezier(.2, .8, .2, 1), opacity .6s, filter .6s; cursor: pointer; -webkit-box-reflect: below 8px linear-gradient(transparent 70%, #0003); }
+  .curvo-carta video { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+  .curvo-nav { display: flex; gap: 10px; justify-content: center; padding: 12px; }
+  .curvo-nav button { font: inherit; padding: 6px 14px; border-radius: 99px; border: 1px solid var(--linea); background: var(--tarjeta); color: var(--tinta); cursor: pointer; }
+</style>
+<!-- /PIEZA -->
+</head>
+<body data-titulo="Carrusel curvo de vídeos" data-origen="Portfolio · Creative work (vídeos)">
+<div class="kit-nota">
+  <h1>Carrusel curvo de vídeos</h1>
+  <p>Las tarjetas se colocan sobre un arco en 3D con reflejo debajo. La del centro se reproduce (si es un vídeo), las demás se oscurecen y se pausan. Avanza sola cada 5 segundos, se para con el ratón encima y se puede pulsar una tarjeta para traerla al centro.</p>
+</div>
+
+<!-- PIEZA: html (cada .curvo-carta puede llevar un <video muted playsinline loop>) -->
+<div class="curvo" data-curvo>
+  <div class="curvo-pista">
+    <div class="curvo-carta" style="--c:#c8572d"></div>
+    <div class="curvo-carta" style="--c:#3d8a7d"></div>
+    <div class="curvo-carta" style="--c:#d8b45a"></div>
+    <div class="curvo-carta" style="--c:#8a6bb0"></div>
+    <div class="curvo-carta" style="--c:#e6a17a"></div>
+    <div class="curvo-carta" style="--c:#5d8ab0"></div>
+    <div class="curvo-carta" style="--c:#6e4a3a"></div>
+  </div>
+</div>
+<div class="curvo-nav"><button type="button" data-ant>←</button><button type="button" data-sig>→</button></div>
+<!-- /PIEZA -->
+<p class="kit-fin">Sigue la página</p>
+
+<!-- PIEZA: script -->
+<script>
+(() => {
+  const curvo = document.querySelector('[data-curvo]');
+  const cartas = [...curvo.querySelectorAll('.curvo-carta')];
+  const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let en = 0, quieta = false, visto = false, reloj;
+  const coloca = () => {
+    const estrecho = innerWidth < 700;
+    const radio = estrecho ? 520 : Math.max(760, innerWidth * .62);
+    cartas.forEach((c, i) => {
+      let d = i - en;
+      if (d > cartas.length / 2) d -= cartas.length;      // el camino corto, en bucle
+      if (d < -cartas.length / 2) d += cartas.length;
+      const lejos = Math.abs(d), giro = d * (estrecho ? 24 : 22) * Math.PI / 180;
+      c.style.transform = `translate3d(${Math.sin(giro) * radio}px,0,${(Math.cos(giro) - 1) * radio}px) rotateY(${giro}rad)`;
+      c.style.opacity = lejos > 2 ? .35 : 1;
+      c.style.zIndex = 5 - lejos;
+      c.style.filter = d ? 'brightness(.62)' : 'none';
+      const v = c.querySelector('video');
+      if (v) { if (d === 0 && visto) v.play().catch(() => {}); else v.pause(); }
+    });
+  };
+  const plan = () => { clearTimeout(reloj); if (!quieto && visto && !quieta) reloj = setTimeout(() => ve(en + 1), 5200); };
+  const ve = i => { en = (i + cartas.length) % cartas.length; coloca(); plan(); };
+  cartas.forEach((c, i) => {
+    c.addEventListener('click', () => { if (i !== en) ve(i); });
+    c.addEventListener('pointerenter', () => { if (i === en) { quieta = true; plan(); } });
+    c.addEventListener('pointerleave', () => { quieta = false; plan(); });
+  });
+  document.querySelector('[data-sig]').addEventListener('click', () => ve(en + 1));
+  document.querySelector('[data-ant]').addEventListener('click', () => ve(en - 1));
+  new IntersectionObserver(([e]) => { visto = e.isIntersecting; coloca(); plan(); }, { threshold: .35 }).observe(curvo);
+  addEventListener('resize', coloca);
+  coloca();
+})();
+</script>
+<!-- /PIEZA -->
+<script src="../../../comun/kit.js"></script>
+</body>
+</html>

@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rueda de títulos</title>
+<link rel="stylesheet" href="../../../comun/kit.css">
+<!-- PIEZA: estilos -->
+<style>
+  .rueda { position: relative; height: 400svh; }
+  .rueda-pin { position: sticky; top: 0; height: 100svh; overflow: hidden; }
+  /* Los títulos giran alrededor de un centro que está fuera de la pantalla, a la izquierda */
+  .rueda-eje { position: absolute; left: calc(-1 * var(--R)); top: 50%; }
+  .rueda-item { position: absolute; left: 0; top: 0; translate: 0 -50%; transform-origin: 0 50%; white-space: nowrap; font: 600 clamp(26px, 5vw, 60px)/1 Georgia, serif; color: var(--suave); transition: color .3s; }
+  .rueda-item.on { color: var(--tinta); }
+  .rueda-fotos { position: absolute; right: 6vw; top: 50%; translate: 0 -50%; width: min(36vw, 420px); aspect-ratio: 4 / 3; }
+  .rueda-fotos i { position: absolute; inset: 0; border-radius: 12px; background: var(--c); opacity: 0; scale: .96; transition: opacity .5s, scale .5s; }
+  .rueda-fotos i.on { opacity: 1; scale: 1; }
+  @media (max-width: 760px) { .rueda-fotos { right: 16px; top: auto; bottom: 8svh; translate: none; width: 44vw; } }
+</style>
+<!-- /PIEZA -->
+</head>
+<body data-titulo="Rueda de títulos" data-origen="Portfolio · Work (primera versión)">
+<div class="kit-nota">
+  <h1>Rueda de títulos</h1>
+  <p>Los títulos están colocados en el borde de una rueda enorme cuyo centro queda fuera de la pantalla. Con el scroll la rueda gira, el título que pasa por el centro se enciende y a la derecha cambia su imagen.</p>
+</div>
+
+<!-- PIEZA: html -->
+<section class="rueda" data-rueda>
+  <div class="rueda-pin">
+    <div class="rueda-eje">
+      <a class="rueda-item" href="#">Lignum Domus</a>
+      <a class="rueda-item" href="#">The Campus</a>
+      <a class="rueda-item" href="#">GoFacing</a>
+      <a class="rueda-item" href="#">In the Spotlight</a>
+      <a class="rueda-item" href="#">Social media</a>
+      <a class="rueda-item" href="#">Fotografía</a>
+    </div>
+    <div class="rueda-fotos" aria-hidden="true">
+      <i style="--c:#c08a52"></i><i style="--c:#3d5d55"></i><i style="--c:#6e4a3a"></i><i style="--c:#5b4a6e"></i><i style="--c:#2a3b40"></i><i style="--c:#a87543"></i>
+    </div>
+  </div>
+</section>
+<!-- /PIEZA -->
+<p class="kit-fin">Sigue la página</p>
+
+<!-- PIEZA: script -->
+<script>
+(() => {
+  const rueda = document.querySelector('[data-rueda]');
+  const items = [...rueda.querySelectorAll('.rueda-item')], fotos = [...rueda.querySelectorAll('.rueda-fotos i')];
+  const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+  const PASO = 9.5;           // grados entre títulos
+  let actual = -1, suave = 0;
+  const frame = () => {
+    const peque = innerWidth <= 900 || innerWidth / innerHeight < 1.25;
+    const R = peque ? 520 : Math.max(620, innerHeight * .86);
+    rueda.style.setProperty('--R', `${R - (peque ? 24 : 80)}px`);
+    const r = rueda.getBoundingClientRect();
+    const objetivo = clamp(-r.top / Math.max(1, r.height - innerHeight)) * (items.length - 1);
+    suave += (objetivo - suave) * (quieto ? 1 : .14);
+    items.forEach((it, i) => {
+      const a = (i - suave) * PASO;
+      it.style.transform = `rotate(${a}deg) translateX(${R}px)`;
+      it.style.opacity = clamp(1 - Math.abs(a) / 52);
+    });
+    const en = Math.round(suave);
+    if (en !== actual) {
+      if (actual >= 0) { items[actual].classList.remove('on'); fotos[actual].classList.remove('on'); }
+      items[en].classList.add('on'); fotos[en].classList.add('on');
+      actual = en;
+    }
+    requestAnimationFrame(frame);
+  };
+  frame();
+})();
+</script>
+<!-- /PIEZA -->
+<script src="../../../comun/kit.js"></script>
+</body>
+</html>

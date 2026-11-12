@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mesa con objetos</title>
+<link rel="stylesheet" href="../../../comun/kit.css">
+<!-- PIEZA: estilos -->
+<style>
+  .mesa { position: relative; height: min(80svh, 700px); margin: 0 16px 40px; border-radius: 16px; overflow: hidden; touch-action: none; user-select: none;
+    background: radial-gradient(circle at var(--lx, 50%) var(--ly, 50%), #ffe2a833 0, #ffe2a81a 18%, transparent 34%), repeating-linear-gradient(92deg, #6b4a2b 0 40px, #74512f 40px 90px, #654527 90px 130px); }
+  .cosa { position: absolute; left: 0; top: 0; width: calc(var(--w) * 1vmin); aspect-ratio: var(--ar, 1); padding: 0; border: 0; border-radius: 10px; cursor: grab; display: grid; place-items: end center; font: 600 12px system-ui; color: #fff; background: var(--c); will-change: transform, filter; }
+  .cosa.cogida { cursor: grabbing; }
+  .cosa span { padding: 4px 6px; opacity: 0; transition: opacity .2s; }
+  .cosa:hover span, .cosa:focus-visible span { opacity: 1; }
+  .cosa.lampara { border-radius: 50%; background: radial-gradient(circle at 40% 40%, #f7e3a8, #b48a4a 60%, #6b4a2b); }
+  .mesa-zoom { position: absolute; inset: 0; z-index: 99999; display: grid; place-items: center; background: #000b; opacity: 0; pointer-events: none; transition: opacity .3s; }
+  .mesa-zoom.on { opacity: 1; pointer-events: auto; }
+  .mesa-zoom div { background: var(--tarjeta); color: var(--tinta); padding: 28px; border-radius: 14px; text-align: center; min-width: 240px; }
+  .mesa-zoom button { margin-top: 12px; font: inherit; padding: 6px 14px; border-radius: 8px; border: 1px solid var(--linea); background: var(--fondo); color: var(--tinta); cursor: pointer; }
+</style>
+<!-- /PIEZA -->
+</head>
+<body data-titulo="Mesa con objetos que se cogen y se lanzan" data-origen="Portfolio · Home (la mesa de Watashi)">
+<div class="kit-nota">
+  <h1>Mesa con objetos</h1>
+  <p>Coge un objeto, arrástralo y suéltalo con fuerza: resbala por la madera y frena. Si lo sueltas despacio bajo la luz de la lámpara, se abre. Un clic sin arrastrar también lo abre. Mueve la lámpara: la luz y todas las sombras la siguen.</p>
+  <p>Cada objeto tiene tres sombras: una de contacto pegada a la mesa, otra cercana que da volumen y una larga que se aleja de la lámpara. Al levantarlo, sube y su sombra se separa.</p>
+</div>
+
+<!-- PIEZA: html -->
+<div class="mesa" data-mesa>
+  <div class="mesa-zoom" data-zoom><div><b></b><p></p><button type="button" data-cerrar>Cerrar</button></div></div>
+</div>
+<!-- /PIEZA -->
+
+<!-- PIEZA: script -->
+<script>
+(() => {
+  const mesa = document.querySelector('[data-mesa]');
+  const zoom = mesa.querySelector('[data-zoom]');
+  const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // [nombre, ancho (vmin), x, y (partes de la mesa), giro, altura del objeto, color, proporción]
+  const COSAS = [
+    ['Lámpara', 18, .82, .2, -18, 3, '', 1, true],
+    ['Web 1', 12, .25, .35, 8, 1.8, '#3d5d55', .7],
+    ['Web 2', 12, .42, .35, -6, 2.4, '#6e4a3a', 1.2],
+    ['Vídeo', 11, .3, .7, -10, .9, '#2a3b40', 1],
+    ['Fotos', 13, .5, .68, 5, 2, '#5b4a6e', 1.4],
+    ['CV', 10, .75, .7, -5, .9, '#a87543', .75],
+  ];
+  const SOMBRERETE = [-.05, .67];   // de dónde sale la luz, en partes del dibujo de la lámpara
+  let zTop = 10;
+  const cosas = COSAS.map(([nombre, w, px, py, r, alto, color, ar, esLampara]) => {
+    const el = document.createElement('button');
+    el.type = 'button';
+    el.className = 'cosa' + (esLampara ? ' lampara' : '');
+    el.style.setProperty('--w', w); el.style.setProperty('--c', color); el.style.setProperty('--ar', ar);
+    el.innerHTML = `<span>${nombre}</span>`;
+    el.setAttribute('aria-label', nombre);
+    mesa.append(el);
+    return { el, nombre, lampara: !!esLampara, px, py, alto, x: 0, y: 0, r, vx: 0, vy: 0, vr: 0, cogida: false, sube: 0, vs: 0 };
+  });
+  const lampara = cosas.find(c => c.lampara);
+  const tam = () => ({ W: mesa.clientWidth, H: mesa.clientHeight });
+  const coloca = () => { const { W, H } = tam(); cosas.forEach(c => { c.x = W * c.px; c.y = H * c.py; }); };
+  coloca();
+  addEventListener('resize', coloca);
+
+  const luz = () => {
+    const w = lampara.el.offsetWidth, h = lampara.el.offsetHeight, a = lampara.r * Math.PI / 180, { W, H } = tam();
+    const ox = (SOMBRERETE[0] - .5) * w, oy = (SOMBRERETE[1] - .5) * h;
+    return { x: lampara.x + ox * Math.cos(a) - oy * Math.sin(a), y: lampara.y + ox * Math.sin(a) + oy * Math.cos(a), r: Math.min(W, H) * .26 };
+  };
+  const bajoLaLuz = c => !c.lampara && Math.hypot(c.x - luz().x, c.y - luz().y) < luz().r;
+  const abre = c => {
+    if (c.lampara) return;
+    zoom.querySelector('b').textContent = c.nombre;
+    zoom.querySelector('p').textContent = 'Aquí iría el trabajo en grande y su enlace.';
+    zoom.classList.add('on');
+    zoom.querySelector('button').focus();
+  };
+  const cierra = () => zoom.classList.remove('on');
+  zoom.addEventListener('click', e => { if (e.target === zoom || e.target.hasAttribute('data-cerrar')) cierra(); });
+  addEventListener('keydown', e => { if (e.key === 'Escape') cierra(); });
+
+  let arrastre = null;
+  const local = e => { const b = mesa.getBoundingClientRect(); return { x: e.clientX - b.left, y: e.clientY - b.top }; };
+  cosas.forEach(c => {
+    c.el.addEventListener('click', e => { e.preventDefault(); if (e.detail === 0) abre(c); });   // teclado
+    c.el.addEventListener('pointerdown', e => {
+      if (e.button !== 0) return;
+      c.el.setPointerCapture(e.pointerId);
+      c.cogida = true; c.el.classList.add('cogida'); c.el.style.zIndex = ++zTop;
+      const p = local(e);
+      arrastre = { c, ox: p.x - c.x, oy: p.y - c.y, lx: p.x, ly: p.y, lt: performance.now(), movido: 0 };
+    });
+    c.el.addEventListener('pointermove', e => {
+      if (!arrastre || arrastre.c !== c) return;
+      const p = local(e), ahora = performance.now(), dt = Math.max(8, ahora - arrastre.lt);
+      c.vx = (p.x - arrastre.lx) / dt * 16; c.vy = (p.y - arrastre.ly) / dt * 16;
+      arrastre.movido += Math.hypot(p.x - arrastre.lx, p.y - arrastre.ly);
+      arrastre.lx = p.x; arrastre.ly = p.y; arrastre.lt = ahora;
+      c.x = p.x - arrastre.ox; c.y = p.y - arrastre.oy;
+    });
+    const suelta = () => {
+      if (!arrastre || arrastre.c !== c) return;
+      c.cogida = false; c.el.classList.remove('cogida');
+      if (arrastre.movido < 6) { c.vx = c.vy = 0; abre(c); }               // un toque: se abre
+      else if (c.lampara) { c.vx = c.vy = c.vr = 0; }                    // la lámpara pesa: se queda
+      else { c.vr = c.vx * .1; if (Math.hypot(c.vx, c.vy) < 2 && bajoLaLuz(c)) { c.vx = c.vy = 0; abre(c); } }
+      arrastre = null;
+    };
+    c.el.addEventListener('pointerup', suelta);
+    c.el.addEventListener('pointercancel', suelta);
+  });
+
+  const frame = () => {
+    const { W, H } = tam(), vmin = Math.min(innerWidth, innerHeight) / 100;
+    cosas.forEach(c => {
+      if (!c.cogida) {
+        c.x += c.vx; c.y += c.vy; c.r += c.vr;
+        c.vx *= .82; c.vy *= .82; c.vr *= .8;                            // la madera frena
+        const hw = c.el.offsetWidth / 2, hh = c.el.offsetHeight / 2;     // pueden asomar por el borde, nunca salir
+        if (c.x < hw * .1 || c.x > W - hw * .1) { c.vx *= -.3; c.x = Math.min(W - hw * .1, Math.max(hw * .1, c.x)); }
+        if (c.y < hh * .1 || c.y > H - hh * .1) { c.vy *= -.3; c.y = Math.min(H - hh * .1, Math.max(hh * .1, c.y)); }
+        if (c.lanzada && Math.hypot(c.vx, c.vy) < .3) { c.lanzada = false; if (bajoLaLuz(c)) abre(c); }
+        if (Math.hypot(c.vx, c.vy) > .3) c.lanzada = true;
+      }
+      // Al soltarlo aterriza con un pequeño rebote en vez de pararse en el aire
+      if (!quieto) { c.vs = (c.vs + ((c.cogida ? 1 : 0) - c.sube) * .22) * .62; c.sube = Math.max(-.04, c.sube + c.vs); }
+      else c.sube = c.cogida ? 1 : 0;
+    });
+    // Dos cosas no pueden ocupar el mismo sitio: se empujan un poco
+    for (let i = 0; i < cosas.length; i++) for (let j = i + 1; j < cosas.length; j++) {
+      const a = cosas[i], b = cosas[j];
+      if (a.cogida || b.cogida) continue;
+      const ra = Math.min(a.el.offsetWidth, a.el.offsetHeight) * .4, rb = Math.min(b.el.offsetWidth, b.el.offsetHeight) * .4;
+      const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1, sobra = ra + rb - d;
+      if (sobra > 0) { const k = sobra * .06 / d; a.x -= dx * k; a.y -= dy * k; b.x += dx * k; b.y += dy * k; }
+    }
+    const L = luz();
+    mesa.style.setProperty('--lx', `${L.x}px`); mesa.style.setProperty('--ly', `${L.y}px`);
+    cosas.forEach(c => {
+      const dx = c.x - L.x, dy = c.y - L.y, d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d;
+      const sube = Math.max(0, c.sube), lejos = Math.min(1, d / Math.max(W, H));
+      const largo = (c.alto * (.7 + lejos * 1.8) + sube * 3.2) * vmin, borroso = (.4 + c.alto * .45 + sube * 2.4) * vmin;
+      const cuerpo = `drop-shadow(${ux * largo * .35}px ${uy * largo * .35}px ${borroso * .35}px rgba(6,3,1,${c.lampara ? 0 : .55 * (1 - sube * .6)}))`;
+      const sx = c.lampara ? .6 * vmin : ux * largo, sy = c.lampara ? 1.6 * vmin : uy * largo;
+      const contacto = `drop-shadow(${ux * .18 * vmin}px ${uy * .18 * vmin}px ${.25 * vmin}px rgba(10,5,2,${.85 * (1 - sube)}))`;
+      const suave = `drop-shadow(${sx}px ${sy}px ${borroso}px rgba(10,5,2,${.6 - sube * .2}))`;
+      const cerca = c.lampara ? .6 : Math.max(0, 1 - d / (L.r * 3.2));
+      c.el.style.filter = `brightness(${(.8 + cerca * .4 + sube * .06).toFixed(3)}) ${contacto} ${cuerpo} ${suave}`;
+      const ladeo = c.cogida ? Math.max(-10, Math.min(10, c.vx * .6)) : 0;
+      c.el.style.transform = `translate(${c.x - c.el.offsetWidth / 2}px,${c.y - c.el.offsetHeight / 2}px) rotate(${c.r + ladeo}deg) scale(${1 + c.sube * .08})`;
+    });
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+})();
+</script>
+<!-- /PIEZA -->
+<script src="../../../comun/kit.js"></script>
+</body>
+</html>

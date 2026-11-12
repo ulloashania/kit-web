@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Collage de entrada</title>
+<link rel="stylesheet" href="../../../comun/kit.css">
+<!-- PIEZA: estilos -->
+<style>
+  .collage { position: relative; height: 100svh; overflow: hidden; background: #f2f3ef; display: grid; place-items: center; }
+  .collage-foto { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; }
+  .collage-sombra { position: absolute; inset: 0; background: linear-gradient(transparent 30%, #000a); opacity: 0; pointer-events: none; }
+  .collage-texto { position: relative; z-index: 3; color: #fff; text-align: center; padding: 16px; opacity: 0; transition: opacity .8s, translate .8s; translate: 0 20px; }
+  .collage.listo .collage-texto { opacity: 1; translate: none; }
+  .collage-texto h1 { font: 600 clamp(32px, 6vw, 70px)/1.05 Georgia, serif; margin: 0 0 12px; }
+  .collage-minis { position: absolute; z-index: 3; left: 50%; bottom: 5svh; translate: -50% 0; display: flex; gap: 10px; opacity: 0; transition: opacity .4s; }
+  .collage.minis .collage-minis { opacity: 1; }
+  .collage-minis i { width: clamp(48px, 9vw, 96px); aspect-ratio: 4 / 3; border-radius: 10px; }
+</style>
+<!-- /PIEZA -->
+</head>
+<body data-titulo="Collage de fotos que se abre" data-origen="Lignum Domus · Home (entrada del hero)">
+<!-- PIEZA: html (cambia cada .collage-foto por un <img>) -->
+<header class="collage" data-collage>
+  <i class="collage-foto" style="background:#8a5d33"></i>
+  <i class="collage-foto" style="background:#c08a52"></i>
+  <i class="collage-foto" style="background:#5d645f"></i>
+  <i class="collage-foto" style="background:#f2ab82"></i>
+  <i class="collage-foto" style="background:#a87543"></i>
+  <i class="collage-foto" style="background:#3b3a35"></i>
+  <i class="collage-foto" style="background:#f99a62"></i>
+  <i class="collage-foto" style="background:#7a5029"></i>
+  <i class="collage-foto" style="background:#b07c48"></i>
+  <div class="collage-sombra" data-sombra></div>
+  <div class="collage-texto"><h1>Collage de entrada</h1><p>Recarga la página para verlo otra vez</p></div>
+  <div class="collage-minis" data-minis>
+    <i style="background:#c08a52"></i><i style="background:#5d645f"></i><i style="background:#f2ab82"></i><i style="background:#a87543"></i><i style="background:#3b3a35"></i>
+  </div>
+</header>
+<!-- /PIEZA -->
+<div class="kit-nota" style="padding-top:32px">
+  <p>Al cargar, nueve fotos entran desde fuera girando y forman un collage de 3×3. El collage respira, cinco fotos bajan a ser las miniaturas, la del centro queda enmarcada en aros de colores y los aros se abren hasta salir de la pantalla. Después llega el texto.</p>
+  <p>Está hecho con <code>element.animate()</code> (Web Animations), que permite encadenar pasos con <code>await</code>. En Lignum solo se ve la primera vez de cada visita (se guarda en <code>sessionStorage</code>).</p>
+</div>
+
+<!-- PIEZA: script -->
+<script>
+(async () => {
+  const hero = document.querySelector('[data-collage]');
+  const fotos = [...hero.querySelectorAll('.collage-foto')];
+  const minis = [...hero.querySelectorAll('[data-minis] i')];
+  const termina = () => { hero.classList.add('minis', 'listo'); fotos[0].style.opacity = 1; fotos.slice(1).forEach(f => f.remove()); };
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return termina();
+
+  const peque = innerWidth < 760, tam = peque ? .36 : .3, gx = peque ? 39 : 34, gy = peque ? 37 : 34;
+  const sitios = [[0, 0], [-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
+  const giros = [0, -4, 3, -2, 3, -3, 2, -2, 4];
+  const puesto = (i, abre = 1, s = tam) => `translate(${sitios[i][0] * gx * abre}%,${sitios[i][1] * gy * abre}%) rotate(${giros[i]}deg) scale(${s})`;
+
+  // 1. Llegan desde fuera
+  await Promise.all(fotos.map((f, i) => {
+    const [x, y] = sitios[i];
+    const desde = i === 0 ? `scale(${tam * .6})` : `translate(${(x || (i % 2 ? 1 : -1)) * 240}%,${(y || (i % 2 ? -1 : 1)) * 200}%) rotate(${giros[i] * 4}deg) scale(${tam})`;
+    return f.animate([{ transform: desde, opacity: 0 }, { transform: puesto(i), opacity: 1 }],
+      { duration: 850, delay: ((i + 8) % 9) * 75, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'both' }).finished;
+  }));
+  // 2. Respira
+  await Promise.all(fotos.map((f, i) => f.animate([{ transform: puesto(i) }, { transform: puesto(i, 1.04) }], { duration: 420, easing: 'ease-in-out', fill: 'both' }).finished));
+
+  // 3. Las demás bajan a las miniaturas; la principal se enmarca en aros (sombras de colores)
+  const caja = hero.getBoundingClientRect();
+  const marco = `scale(${peque ? .55 : .46})`;
+  const sinAros = '0 0 0 0 #f2f3ef,0 0 0 0 #f2ab82,0 0 0 0 #f2f3ef,0 0 0 0 #f99a62,0 0 0 0 #f2f3ef,0 0 0 0 #f99a31';
+  const aros = '0 0 0 12px #f2f3ef,0 0 0 52px #f2ab82,0 0 0 64px #f2f3ef,0 0 0 104px #f99a62,0 0 0 116px #f2f3ef,0 0 0 170px #f99a31';
+  const vuelo = { duration: 950, easing: 'cubic-bezier(.76,0,.18,1)', fill: 'both' };
+  fotos[0].style.zIndex = 2;
+  await Promise.all(fotos.map((f, i) => {
+    if (i === 0) return f.animate([{ transform: puesto(0, 1.04), borderRadius: '42px', boxShadow: sinAros }, { transform: marco, borderRadius: '42px', boxShadow: aros }], vuelo).finished;
+    const m = minis[i - 1];
+    if (!m) { const [x, y] = sitios[i]; return f.animate([{ transform: puesto(i, 1.04), opacity: 1 }, { transform: `translate(${(x || 1) * 200}%,${(y || 1) * 200}%) scale(${tam})`, opacity: 0 }], vuelo).finished; }
+    const r = m.getBoundingClientRect();
+    const x = (r.left + r.width / 2 - (caja.left + caja.width / 2)) / caja.width * 100;
+    const y = (r.top + r.height / 2 - (caja.top + caja.height / 2)) / caja.height * 100;
+    f.style.zIndex = 3;
+    return f.animate([{ transform: puesto(i, 1.04), borderRadius: '42px' }, { transform: `translate(${x}%,${y}%) scale(${r.width / caja.width},${r.height / caja.height})`, borderRadius: '10px' }], { ...vuelo, delay: i * 55 }).finished;
+  }));
+  hero.classList.add('minis');
+  fotos.slice(1).forEach(f => f.remove());
+  await new Promise(r => setTimeout(r, 280));
+
+  // 4. Los aros se abren hasta salir de la pantalla y llega el texto
+  hero.classList.add('listo');
+  const abre = { duration: 1300, easing: 'cubic-bezier(.83,0,.17,1)', fill: 'both' };
+  fotos[0].animate([{ transform: marco, borderRadius: '42px', boxShadow: aros }, { transform: 'none', borderRadius: '0', boxShadow: aros }], abre);
+  hero.querySelector('[data-sombra]').animate([{ opacity: 0 }, { opacity: 1 }], abre);
+})();
+</script>
+<!-- /PIEZA -->
+<script src="../../../comun/kit.js"></script>
+</body>
+</html>

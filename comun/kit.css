@@ -1,0 +1,81 @@
+/* Estilos de las páginas de demostración del kit. No forman parte de ninguna pieza:
+   cada pieza lleva sus propios estilos dentro de su bloque PIEZA. */
+:root {
+  --fondo: #f4f1ea;
+  --tinta: #1d1b17;
+  --suave: #6d675d;
+  --linea: #d9d3c6;
+  --acento: #c8572d;
+  --tarjeta: #fffdf8;
+  --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --fondo: #121210;
+    --tinta: #efeae0;
+    --suave: #a29b8e;
+    --linea: #2f2c27;
+    --acento: #f0875c;
+    --tarjeta: #1b1a17;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --fondo: #121210; --tinta: #efeae0; --suave: #a29b8e; --linea: #2f2c27; --acento: #f0875c; --tarjeta: #1b1a17;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--fondo);
+  color: var(--tinta);
+  font: 16px/1.55 system-ui, "Segoe UI", sans-serif;
+}
+a { color: inherit; }
+
+/* Barra de arriba de cada demo */
+.kit-bar {
+  position: fixed; inset: 0 0 auto; z-index: 1000;
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 16px;
+  background: color-mix(in srgb, var(--fondo) 88%, transparent);
+  border-bottom: 1px solid var(--linea);
+  backdrop-filter: blur(8px);
+  font-size: 14px;
+}
+.kit-bar a { text-decoration: none; color: var(--suave); white-space: nowrap; }
+.kit-bar a:hover { color: var(--tinta); }
+.kit-bar b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kit-bar small { color: var(--suave); white-space: nowrap; }
+.kit-bar button {
+  margin-left: auto; flex: none;
+  font: inherit; font-weight: 600;
+  padding: 6px 14px; border-radius: 99px;
+  border: 1px solid var(--tinta); background: var(--tinta); color: var(--fondo);
+  cursor: pointer;
+}
+@media (max-width: 640px) { .kit-bar small { display: none; } }
+
+/* Ventana con el código */
+.kit-code {
+  width: min(960px, calc(100vw - 32px)); max-height: calc(100vh - 64px);
+  padding: 0; border: 1px solid var(--linea); border-radius: 14px;
+  background: var(--tarjeta); color: var(--tinta);
+}
+.kit-code::backdrop { background: rgb(0 0 0 / .55); }
+.kit-code header { display: flex; gap: 8px; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--linea); position: sticky; top: 0; background: var(--tarjeta); }
+.kit-code header b { margin-right: auto; }
+.kit-code header button { font: inherit; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--linea); background: var(--fondo); color: var(--tinta); cursor: pointer; }
+.kit-code pre { margin: 0; padding: 16px; overflow: auto; font: 13px/1.5 var(--mono); white-space: pre; tab-size: 2; }
+
+/* Texto explicativo dentro de las demos */
+.kit-nota {
+  max-width: 680px; margin: 0 auto; padding: 96px 16px 32px;
+}
+.kit-nota h1 { font-size: clamp(28px, 5vw, 44px); line-height: 1.1; margin: 0 0 12px; }
+.kit-nota p { color: var(--suave); margin: 0 0 10px; }
+.kit-nota code { font: 14px var(--mono); background: var(--tarjeta); border: 1px solid var(--linea); padding: 1px 6px; border-radius: 6px; }
+.kit-baja { text-align: center; color: var(--suave); padding: 24px 16px 40vh; }
+.kit-fin { text-align: center; color: var(--suave); padding: 40vh 16px; }

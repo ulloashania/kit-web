@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Logo que viaja</title>
+<link rel="stylesheet" href="../../../comun/kit.css">
+<!-- PIEZA: estilos -->
+<style>
+  /* El viajero va fijo encima de todo y no se puede pulsar */
+  .viajero { position: fixed; left: 0; top: 0; z-index: 50; pointer-events: none; overflow: visible; }
+  .viajero path { fill: #f99a31; fill-rule: evenodd; transition: fill .3s; }
+  .viajero path + path { fill: #f2ab82; }
+  /* Paradas de ejemplo */
+  .parada-logo { width: 90px; height: 42px; margin: 90px 16px 0; }
+  .parada-foto { width: min(70vw, 420px); aspect-ratio: 4 / 3; margin: 60svh auto; border-radius: 12px; background: linear-gradient(135deg, #8a6b4a, #3b3a35); }
+  .parada-dato { width: min(60vw, 260px); margin: 60svh auto; padding: 28px; text-align: center; border-radius: 10px; background: var(--tarjeta); font: 700 48px/1 system-ui; }
+  .parada-fin { width: min(80vw, 520px); height: 240px; margin: 70svh auto 30svh; }
+</style>
+<!-- /PIEZA -->
+</head>
+<body data-titulo="Logo que viaja por la página" data-origen="Lignum Domus · Home y About">
+<!-- PIEZA: html -->
+<svg class="viajero" data-viajero aria-hidden="true"><path/><path/></svg>
+<div class="parada-logo" data-parada="tal-cual"></div>
+<!-- /PIEZA -->
+<div class="kit-nota" style="padding-top:24px">
+  <h1>Logo que viaja por la página</h1>
+  <p>Un único logo baja con el scroll de parada en parada: sale del header, enmarca una foto, se pone detrás de una cifra, se queda pequeño al borde de la pantalla y acaba en el pie. Entre paradas vuela y cambia de tamaño.</p>
+  <p>El truco: no se escala con <code>scale()</code>, sino que el dibujo se vuelve a trazar a cada tamaño. Así el grosor de los aros no se deforma. Cada parada dice cómo colocarse: tal cual, rodeando algo o asomando por detrás.</p>
+</div>
+<!-- PIEZA: html de las paradas (pon data-parada en tus elementos) -->
+<div class="parada-foto" data-parada="rodea"></div>
+<div class="parada-dato" data-parada="detras">+20 años</div>
+<div style="height:80svh" data-parada="lado"></div>
+<div class="parada-fin" data-parada="tal-cual"></div>
+<!-- /PIEZA -->
+
+<!-- PIEZA: script -->
+<script>
+(() => {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const viajero = document.querySelector('[data-viajero]');
+  const [p1, p2] = viajero.querySelectorAll('path');
+  const paradas = [...document.querySelectorAll('[data-parada]')];
+  const lim = v => Math.max(0, Math.min(v, 1));
+  const ease = t => t * t * (3 - 2 * t);
+  const lerp = (a, b, t) => a + (b - a) * t;
+
+  // Un rectángulo redondeado en trazo SVG
+  const caja = (x1, y1, x2, y2, r) => `M${x1 + r} ${y1}H${x2 - r}A${r} ${r} 0 0 1 ${x2} ${y1 + r}V${y2 - r}A${r} ${r} 0 0 1 ${x2 - r} ${y2}H${x1 + r}A${r} ${r} 0 0 1 ${x1} ${y2 - r}V${y1 + r}A${r} ${r} 0 0 1 ${x1 + r} ${y1}Z`;
+  // Dos aros, uno dentro de otro; k es el grosor (independiente del tamaño)
+  const dibuja = ({ left, top, width: w, height: h, k }) => {
+    viajero.style.transform = `translate(${left}px,${top}px)`;
+    viajero.setAttribute('width', w); viajero.setAttribute('height', h);
+    viajero.setAttribute('viewBox', `0 0 ${w} ${h}`);
+    p1.setAttribute('d', caja(0, 0, w, h, 20 * k) + caja(14 * k, 14 * k, w - 14 * k, h - 14 * k, 14 * k));
+    p2.setAttribute('d', caja(20 * k, 20 * k, w - 20 * k, h - 20 * k, 10 * k) + caja(30 * k, 30 * k, w - 30 * k, h - 30 * k, 6 * k));
+  };
+
+  // Formas de colocarse en una parada
+  const MODOS = {
+    'tal-cual': el => { const r = el.getBoundingClientRect(); return { left: r.left, top: r.top, width: r.width, height: r.height, k: Math.max(r.width / 390, .15) }; },
+    rodea: el => { const r = el.getBoundingClientRect(), m = 34; return { left: r.left - m, top: r.top - m, width: r.width + m * 2, height: r.height + m * 2, k: 1 }; },
+    detras: el => { const r = el.getBoundingClientRect(), m = 14; return { left: r.left - m, top: r.top - m, width: r.width + m * 2, height: r.height + m * 2, k: .5 }; },
+    lado: () => { const w = Math.min(Math.max(innerWidth * .1, 80), 144), h = w * .46; return { left: innerWidth - w * .62, top: innerHeight / 2 - h / 2, width: w, height: h, k: w / 390 }; },
+  };
+
+  // Cada parada: desde qué scroll está quieta (en) y hasta cuál (hasta). Luego vuela a la siguiente
+  let lista = [];
+  const medir = () => {
+    const vh = innerHeight;
+    lista = paradas.map(el => {
+      const top = el.getBoundingClientRect().top + scrollY;
+      const centro = Math.max(0, top + el.offsetHeight / 2 - vh / 2);
+      return { el, modo: MODOS[el.dataset.parada], en: centro - vh * .1, hasta: centro + vh * .1 };
+    });
+    lista[0].en = lista[0].hasta = 0;
+  };
+  const pinta = () => {
+    const y = scrollY;
+    let i = lista.length - 1;
+    while (i > 0 && y < lista[i].en) i--;
+    const de = lista[i], a = lista[Math.min(i + 1, lista.length - 1)];
+    const desde = de.modo(de.el);
+    let sitio = desde;
+    if (a !== de && y > de.hasta) {
+      const t = ease(lim((y - de.hasta) / Math.max(1, a.en - de.hasta)));
+      const hacia = a.modo(a.el);
+      sitio = Object.fromEntries(Object.keys(desde).map(k => [k, lerp(desde[k], hacia[k], t)]));
+    }
+    dibuja(sitio);
+  };
+  let pedido = false;
+  const pide = () => { if (!pedido) { pedido = true; requestAnimationFrame(() => { pedido = false; pinta(); }); } };
+  const refresca = () => { medir(); pinta(); };
+  addEventListener('scroll', pide, { passive: true });
+  addEventListener('resize', refresca);
+  addEventListener('load', refresca);
+  refresca();
+})();
+</script>
+<!-- /PIEZA -->
+<script src="../../../comun/kit.js"></script>
+</body>
+</html>

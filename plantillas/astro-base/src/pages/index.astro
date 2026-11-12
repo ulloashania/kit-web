@@ -1,0 +1,20 @@
+---
+import Base from '../layouts/Base.astro';
+import { site } from '../data/site.js';
+---
+<Base>
+  <section class="hero">
+    <h1>{site.name}</h1>
+    <p>{site.tagline}</p>
+  </section>
+  <section class="bloque" data-reveal>
+    <h2>Una sección</h2>
+    <p>Aquí van las piezas del kit: copia su HTML, su CSS dentro de un &lt;style&gt; y su JS dentro de un &lt;script&gt;.</p>
+  </section>
+</Base>
+
+<style>
+  .hero { min-height: 100svh; display: grid; align-content: end; gap: 1.5rem; padding: 8rem var(--edge) 4rem; background: var(--oscuro); color: var(--blanco); }
+  .hero h1 { font-size: clamp(3rem, 9vw, 8rem); }
+  .bloque { display: grid; gap: 1.5rem; padding: clamp(4rem, 10vw, 8rem) var(--edge); }
+</style>

@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Esfera de tarjetas</title>
+<link rel="stylesheet" href="../../../comun/kit.css">
+<!-- PIEZA: estilos -->
+<style>
+  .esfera { position: relative; height: min(80svh, 720px); display: grid; place-items: center; perspective: 1400px; cursor: grab; touch-action: none; user-select: none; }
+  .esfera.agarrada { cursor: grabbing; }
+  .esfera-bola { position: relative; width: var(--orb); height: var(--orb); transform-style: preserve-3d; }
+  .esfera-tarjeta { position: absolute; left: 50%; top: 50%; width: var(--card); aspect-ratio: 4 / 3; margin: calc(var(--card) * -.375) 0 0 calc(var(--card) * -.5); border-radius: 8px; background: var(--c); backface-visibility: hidden; display: block; }
+  .esfera-tarjeta:hover { outline: 3px solid #fff; }
+  .esfera-nombre { position: absolute; bottom: 4%; left: 0; right: 0; text-align: center; }
+  .esfera-nombre b { display: block; font-size: 22px; min-height: 1.3em; }
+  .esfera-nombre span { color: var(--suave); }
+</style>
+<!-- /PIEZA -->
+</head>
+<body data-titulo="Esfera de tarjetas que gira" data-origen="Portfolio · Work (primera versión)">
+<div class="kit-nota">
+  <h1>Esfera de tarjetas</h1>
+  <p>Las tarjetas se reparten por una esfera con la espiral de Fibonacci (ángulo áureo), así quedan repartidas sin huecos. Gira sola despacio; arrástrala para girarla con inercia. Al pasar por una tarjeta se para y enseña su nombre.</p>
+</div>
+
+<!-- PIEZA: html (las tarjetas se generan desde la lista del script; pueden ser <a> con imagen) -->
+<div class="esfera" data-esfera>
+  <div class="esfera-bola" data-bola></div>
+  <p class="esfera-nombre"><b></b><span>Arrastra para girar</span></p>
+</div>
+<!-- /PIEZA -->
+<p class="kit-fin">Sigue la página</p>
+
+<!-- PIEZA: script -->
+<script>
+(() => {
+  const esfera = document.querySelector('[data-esfera]');
+  const bola = esfera.querySelector('[data-bola]');
+  const nombre = esfera.querySelector('.esfera-nombre b'), pista = esfera.querySelector('.esfera-nombre span');
+  const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const colores = ['#c08a52', '#3d5d55', '#6e4a3a', '#5b4a6e', '#2a3b40', '#a87543', '#8a5d33', '#5d645f'];
+  const tarjetas = Array.from({ length: 30 }, (_, i) => {
+    const a = document.createElement('a');
+    a.href = '#'; a.className = 'esfera-tarjeta';
+    a.style.setProperty('--c', colores[i % colores.length]);
+    a.dataset.nombre = `Trabajo ${i + 1}`; a.dataset.tipo = i % 2 ? 'Web' : 'Diseño';
+    bola.append(a);
+    return a;
+  });
+  const AUREO = Math.PI * (3 - Math.sqrt(5));
+  const reparte = () => {
+    const size = Math.min(esfera.clientWidth * .92, esfera.clientHeight * 1.05), radio = size * .46;
+    esfera.style.setProperty('--orb', `${size}px`);
+    esfera.style.setProperty('--card', `${size * .155}px`);
+    tarjetas.forEach((c, i) => {
+      const y = 1 - (i + .5) / tarjetas.length * 2;
+      const lat = Math.asin(y) * 180 / Math.PI, lon = (i * AUREO * 180 / Math.PI) % 360;
+      c.style.transform = `rotateY(${lon}deg) rotateX(${lat}deg) translateZ(${radio}px)`;
+    });
+  };
+  reparte();
+  addEventListener('resize', reparte);
+
+  let rx = -12, ry = 0, vx = 0, vy = quieto ? 0 : .12, abajo = false, movido = 0, px = 0, py = 0, encima = false;
+  esfera.addEventListener('pointerdown', e => { abajo = true; movido = 0; px = e.clientX; py = e.clientY; esfera.classList.add('agarrada'); });
+  addEventListener('pointermove', e => {
+    if (!abajo) return;
+    const dx = e.clientX - px, dy = e.clientY - py;
+    px = e.clientX; py = e.clientY; movido += Math.abs(dx) + Math.abs(dy);
+    vy = dx * .28; vx = -dy * .18;
+  });
+  const suelta = () => { abajo = false; esfera.classList.remove('agarrada'); };
+  addEventListener('pointerup', suelta); addEventListener('pointercancel', suelta);
+  tarjetas.forEach(c => {
+    c.addEventListener('click', e => { if (movido > 6 || c.getAttribute('href') === '#') e.preventDefault(); });
+    const ve = () => { encima = true; nombre.textContent = c.dataset.nombre; pista.textContent = c.dataset.tipo; };
+    const deja = () => { encima = false; nombre.textContent = ''; pista.textContent = 'Arrastra para girar'; };
+    c.addEventListener('pointerenter', ve); c.addEventListener('pointerleave', deja);
+    c.addEventListener('focus', ve); c.addEventListener('blur', deja);
+  });
+  const frame = () => {
+    if (!abajo) { vy += ((encima || quieto ? 0 : .12) - vy) * .05; vx *= .93; }   // vuelve a su giro lento
+    ry += vy; rx = clamp(rx + vx, -50, 50);
+    if (abajo) { vx *= .6; vy *= .6; }
+    bola.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg)`;
+    requestAnimationFrame(frame);
+  };
+  frame();
+})();
+</script>
+<!-- /PIEZA -->
+<script src="../../../comun/kit.js"></script>
+</body>
+</html>

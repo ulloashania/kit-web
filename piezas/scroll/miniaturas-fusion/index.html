@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Miniaturas que se fusionan</title>
+<link rel="stylesheet" href="../../../comun/kit.css">
+<!-- PIEZA: estilos -->
+<style>
+  .fusion-hero { position: relative; height: 100svh; display: grid; place-items: center; background: #2a2622; color: #f2f3ef; text-align: center; padding: 16px; }
+  .fusion-hero h1 { font: 600 clamp(30px, 6vw, 64px)/1.05 Georgia, serif; margin: 0; }
+  .fusion-minis { position: absolute; left: 50%; bottom: 5svh; translate: -50% 0; display: flex; gap: 10px; }
+  .fusion-minis i, .fusion-capa i { display: block; width: clamp(48px, 9vw, 96px); aspect-ratio: 4 / 3; border-radius: 10px; }
+  .fusion-capa { position: absolute; left: 0; top: 0; z-index: 5; pointer-events: none; visibility: hidden; }
+  .fusion-capa i { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+  .fusion-sig { min-height: 100svh; display: grid; place-items: center; padding: 16px; }
+  .fusion-destino { width: min(80vw, 520px); aspect-ratio: 4 / 3; border-radius: 9px; }
+</style>
+<!-- /PIEZA -->
+</head>
+<body data-titulo="Miniaturas que se juntan y viajan" data-origen="Lignum Domus · Home (del hero a la historia)">
+<!-- PIEZA: html -->
+<header class="fusion-hero" data-fusion-hero>
+  <h1>Miniaturas que se juntan y viajan</h1>
+  <div class="fusion-minis" data-minis>
+    <i style="background:#c08a52"></i><i style="background:#8a5d33"></i><i style="background:#5d645f"></i><i style="background:#f2ab82"></i><i style="background:#f99a62"></i>
+  </div>
+</header>
+<div class="fusion-capa" data-capa aria-hidden="true"></div>
+<section class="fusion-sig">
+  <div class="fusion-destino" data-destino style="background:#f99a31"></div>
+</section>
+<!-- /PIEZA -->
+<div class="kit-nota" style="padding-top:0">
+  <p>Al bajar del hero, las miniaturas se juntan abanicándose en el centro, laten una vez, se funden en una sola y esa viaja y crece hasta la foto de la sección siguiente. Funciona en los dos sentidos del scroll.</p>
+  <p>Se hace con copias de las miniaturas en una capa encima de la página; las de verdad se esconden mientras dura el viaje.</p>
+</div>
+<p class="kit-fin">Sigue la página</p>
+
+<!-- PIEZA: script -->
+<script>
+(() => {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const minis = [...document.querySelectorAll('[data-minis] i')];
+  const fila = document.querySelector('[data-minis]');
+  const capa = document.querySelector('[data-capa]');
+  const destino = document.querySelector('[data-destino]');
+  const clamp = v => Math.max(0, Math.min(v, 1));
+  const ease = t => t * t * (3 - 2 * t);
+  const mix = (a, b, t) => a + (b - a) * t;
+  const sitio = (a, b, t) => ({ x: mix(a.x, b.x, t), y: mix(a.y, b.y, t), w: mix(a.w, b.w, t), h: mix(a.h, b.h, t) });
+  const caja = el => { const r = el.getBoundingClientRect(); return { x: r.left + scrollX, y: r.top + scrollY, w: r.width, h: r.height }; };
+
+  // Copias: una por miniatura y una más, la "fusionada", con el color/foto del destino
+  const copias = minis.map(m => { const c = m.cloneNode(); capa.append(c); return c; });
+  const final = document.createElement('i');
+  final.style.background = destino.style.background;
+  capa.append(final);
+  copias.push(final);
+
+  let inicios = [], centro, meta, fin = 1, visto = 0, quiero = 0, andando = false;
+  const medir = () => {
+    inicios = minis.map(caja);
+    meta = caja(destino);
+    fin = Math.max(meta.y - innerHeight / 2 + meta.h / 2, 1);
+    const f = caja(fila), w = inicios[0].w * 1.2, h = inicios[0].h * 1.2;
+    centro = { x: f.x + f.w / 2 - w / 2, y: f.y + f.h / 2 - h / 2, w, h };
+    inicios.push(centro);
+  };
+  const dibuja = p => {
+    const quieta = p <= .002 || p >= .998;
+    capa.style.visibility = quieta ? 'hidden' : 'visible';
+    fila.style.visibility = p <= .002 ? 'visible' : 'hidden';
+    destino.style.opacity = p >= .998 ? '' : 0;
+    if (quieta) return;
+    const junta = ease(clamp(p / .42));               // 1.º se juntan
+    const viaja = ease(clamp((p - .42) / .56));       // 2.º viajan
+    const late = Math.sin(clamp((p - .34) / .16) * Math.PI);
+    copias.forEach((c, i) => {
+      const s = sitio(sitio(inicios[i], centro, junta), meta, viaja);
+      const esFinal = i === copias.length - 1;
+      const giro = (i - 2.5) * 5 * Math.sin(junta * Math.PI);
+      c.style.width = `${s.w}px`; c.style.height = `${s.h}px`;
+      c.style.transform = `translate(${s.x}px,${s.y}px) rotate(${esFinal ? 0 : giro}deg) scale(${1 + late * .08})`;
+      c.style.opacity = esFinal ? clamp((p - .36) / .12) : 1 - clamp((p - .48) / .05);
+      c.style.filter = esFinal ? 'none' : `brightness(${mix(.72, 1, junta)})`;
+    });
+  };
+  const suaviza = (r, antes, ahora) => 1 - Math.exp(-r * Math.min(ahora - antes, 200) / 1000);
+  let tiempo = 0;
+  const paso = ahora => {
+    visto += (quiero - visto) * suaviza(10.5, tiempo || ahora - 16, ahora);
+    tiempo = ahora;
+    if (Math.abs(quiero - visto) < .001) visto = quiero;
+    dibuja(visto);
+    if (visto === quiero) { andando = false; tiempo = 0; } else requestAnimationFrame(paso);
+  };
+  const sigue = () => { quiero = clamp(scrollY / fin); if (!andando) { andando = true; requestAnimationFrame(paso); } };
+  const refresca = () => { fila.style.visibility = 'visible'; destino.style.opacity = ''; medir(); dibuja(visto); sigue(); };
+  addEventListener('scroll', sigue, { passive: true });
+  addEventListener('resize', refresca);
+  addEventListener('load', refresca);
+  refresca();
+})();
+</script>
+<!-- /PIEZA -->
+<script src="../../../comun/kit.js"></script>
+</body>
+</html>

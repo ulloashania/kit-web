@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Efectos de ambiente</title>
+<link rel="stylesheet" href="../../../comun/kit.css">
+<!-- PIEZA: estilos -->
+<style>
+  .noche { position: relative; height: 80svh; margin: 0 16px 40px; border-radius: 14px; overflow: hidden; background: linear-gradient(#0d1a1e, #18282b 68%, #0b1416 68%); }
+  .noche canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  /* Luces: círculos con degradado; el JS solo cambia su opacidad */
+  .luz { position: absolute; border-radius: 50%; pointer-events: none; }
+  .luz-neon { left: 12%; top: 18%; width: 34%; aspect-ratio: 1; background: radial-gradient(#ff4fa3aa, #ff4fa300 65%); }
+  .neon-letrero { position: absolute; left: 17%; top: 32%; font: 700 clamp(26px, 5vw, 54px)/1 system-ui; color: #ffd3ea; text-shadow: 0 0 6px #ff4fa3, 0 0 22px #ff4fa3; letter-spacing: .06em; }
+  .luz-farol { right: 8%; top: 8%; width: 30%; aspect-ratio: 1; background: radial-gradient(#ffc56fbb, #ffc56f00 65%); }
+  .farol { position: absolute; right: 21%; top: 21%; width: 18px; height: 28px; border-radius: 4px; background: #ffe2a8; box-shadow: 0 0 12px #ffc56f; }
+  /* Polvo flotando en la luz: solo CSS */
+  .polvo { position: absolute; right: 12%; top: 14%; width: 22%; height: 40%; pointer-events: none; }
+  .polvo i { position: absolute; width: 3px; height: 3px; border-radius: 50%; background: #ffe9c2; opacity: 0; animation: flota 7s linear infinite; }
+  @keyframes flota { 0% { opacity: 0; transform: translate(0, 20px); } 20%, 80% { opacity: .8; } 100% { opacity: 0; transform: translate(30px, -60px); } }
+  @media (prefers-reduced-motion: reduce) { .polvo i { animation: none; opacity: .5; } }
+</style>
+<!-- /PIEZA -->
+</head>
+<body data-titulo="Humo, niebla, neón, farol, charcos y polvo" data-origen="Portfolio · footer y calle de Services">
+<div class="kit-nota">
+  <h1>Efectos de ambiente</h1>
+  <p>Todo lo que hace que una escena parezca viva: niebla que se arrastra por el suelo, humo que sale de una chimenea, un neón estropeado que tartamudea de vez en cuando, un farol de aceite que respira, polvo flotando en la luz y ondas en los charcos (pulsa sobre el suelo).</p>
+  <p>El humo y la niebla son una sola «bocanada» redonda pintada una vez en un canvas pequeño y estampada muchas veces con distinta transparencia. El canvas se dibuja a la mitad de resolución: el humo es borroso y así va mucho más rápido.</p>
+</div>
+
+<!-- PIEZA: html -->
+<div class="noche" data-noche>
+  <i class="luz luz-neon" data-neon></i><span class="neon-letrero" data-letrero>OPEN</span>
+  <i class="luz luz-farol" data-farol></i><i class="farol"></i>
+  <div class="polvo" aria-hidden="true"></div>
+  <canvas data-humo aria-hidden="true"></canvas>
+</div>
+<!-- /PIEZA -->
+
+<!-- PIEZA: script -->
+<script>
+(() => {
+  const noche = document.querySelector('[data-noche]');
+  const lienzo = noche.querySelector('[data-humo]'), g = lienzo.getContext('2d');
+  const neon = noche.querySelector('[data-neon]'), letrero = noche.querySelector('[data-letrero]'), farol = noche.querySelector('[data-farol]');
+  const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const azar = (a, b) => a + Math.random() * (b - a);
+
+  // Polvo: 18 motas con retrasos distintos
+  const polvo = noche.querySelector('.polvo');
+  for (let i = 0; i < 18; i++) polvo.insertAdjacentHTML('beforeend', `<i style="left:${azar(0, 90)}%;top:${azar(20, 100)}%;animation-delay:${azar(-7, 0)}s;animation-duration:${azar(5, 9)}s"></i>`);
+
+  // Una bocanada por color, pintada una vez
+  const bocanada = rgb => {
+    const c = document.createElement('canvas'); c.width = c.height = 128;
+    const x = c.getContext('2d'), gr = x.createRadialGradient(64, 64, 0, 64, 64, 64);
+    gr.addColorStop(0, `rgba(${rgb},.55)`); gr.addColorStop(.5, `rgba(${rgb},.2)`); gr.addColorStop(1, `rgba(${rgb},0)`);
+    x.fillStyle = gr; x.fillRect(0, 0, 128, 128);
+    return c;
+  };
+  const NIEBLA = bocanada('112,230,224'), HUMO = bocanada('180,196,200');
+  let W = 0, H = 0;
+  const mide = () => { W = noche.clientWidth; H = noche.clientHeight; lienzo.width = W / 2; lienzo.height = H / 2; };
+  mide(); addEventListener('resize', mide);
+  const estampa = (img, x, y, tam, alfa) => { g.globalAlpha = alfa; g.drawImage(img, (x - tam / 2) / 2, (y - tam / 2) / 2, tam / 2, tam / 2); };
+
+  const bancos = Array.from({ length: 12 }, () => ({ x: Math.random(), y: azar(.7, .95), tam: azar(.2, .38), vel: azar(.05, .13), fase: azar(0, 6.28) }));
+  const columna = Array.from({ length: 36 }, (_, i) => ({ t: i / 36, lado: Math.random() - .5, tam: azar(.75, 1.25), giro: azar(0, 6.28) }));
+  const ondas = [];
+  noche.addEventListener('pointerdown', e => {
+    const r = noche.getBoundingClientRect(), y = e.clientY - r.top;
+    if (y > H * .68) ondas.push({ x: e.clientX - r.left, y, r: H * .08, nace: performance.now() });
+  });
+
+  // Neón: casi siempre estable, con un tartamudeo nervioso de vez en cuando
+  let tartamudeo = 0, ultimo = 0;
+  const parpadea = t => {
+    if (t - ultimo > 240) { ultimo = t; if (Math.random() < .09) tartamudeo = 5 + Math.floor(Math.random() * 8); }
+    const zumbido = .78 + Math.sin(t / 170) * .05 + Math.sin(t / 53) * .03;
+    const n = tartamudeo > 0 ? (tartamudeo-- % 2 ? .12 : .9) : zumbido;
+    neon.style.opacity = n.toFixed(2);
+    letrero.style.opacity = (.35 + n * .65).toFixed(2);
+    // El farol de aceite respira suave: tres ondas lentas sumadas
+    farol.style.opacity = (.72 + Math.sin(t / 420) * .08 + Math.sin(t / 133) * .05 + Math.sin(t / 61) * .025).toFixed(2);
+  };
+
+  const frame = t => {
+    const s = t / 1000;
+    g.clearRect(0, 0, lienzo.width, lienzo.height);
+    // Humo de chimenea: sale, crece, se inclina con el viento y se deshace
+    columna.forEach(p => {
+      const q = (p.t + s * .13) % 1;
+      const x = W * (.62 + q * q * .12 + p.lado * q * .06 + Math.sin(s * 1.3 + p.giro) * .01 * (.3 + q));
+      const y = H * (.6 - q * .5);
+      estampa(HUMO, x, y, H * (.05 + q * .2) * p.tam, (q < .12 ? q / .12 : 1 - (q - .12) / .88) * .7);
+    });
+    // Niebla baja que se arrastra
+    bancos.forEach(p => {
+      const x = ((p.x + s * p.vel * .12 + 1.1) % 1.2) - .1;
+      estampa(NIEBLA, x * W, (p.y + Math.sin(s * p.vel + p.fase) * .01) * H, p.tam * H, .28);
+    });
+    // Ondas: elipses aplanadas que crecen y se apagan
+    for (let i = ondas.length - 1; i >= 0; i--) {
+      const o = ondas[i], edad = (t - o.nace) / 1400;
+      if (edad >= 1) { ondas.splice(i, 1); continue; }
+      [0, .3].forEach(retraso => {
+        const a = edad - retraso; if (a <= 0) return;
+        const rx = o.r * (.25 + a * 1.6) / 2;
+        g.globalAlpha = (1 - a) * .95; g.lineWidth = 1.6 - a; g.strokeStyle = '#d8fbf8';
+        g.beginPath(); g.ellipse(o.x / 2, o.y / 2, rx, rx * .2, 0, 0, 6.2832); g.stroke();
+      });
+    }
+    g.globalAlpha = 1;
+    parpadea(t);
+    if (!quieto) requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+})();
+</script>
+<!-- /PIEZA -->
+<script src="../../../comun/kit.js"></script>
+</body>
+</html>

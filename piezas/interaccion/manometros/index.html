@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manómetros con datos</title>
+<link rel="stylesheet" href="../../../comun/kit.css">
+<!-- PIEZA: estilos -->
+<style>
+  .medidores { display: flex; flex-wrap: wrap; justify-content: center; gap: 28px; padding: 16px 16px 30svh; }
+  .medidor { width: 160px; text-align: center; }
+  .medidor svg { width: 100%; display: block; }
+  .medidor .esfera { fill: #1d2224; stroke: #b48a4a; stroke-width: 6; }
+  .medidor .marca { stroke: #f1e6cf88; stroke-width: 2; }
+  .medidor .aguja { stroke: #e0553a; stroke-width: 3.5; stroke-linecap: round; transform-origin: 80px 80px; transition: transform 1.6s cubic-bezier(.3, 1.6, .5, 1); }
+  .medidor text { fill: #f1e6cf; font: 700 20px system-ui; text-anchor: middle; }
+  .medidor p { margin: 6px 0 0; font-weight: 600; }
+</style>
+<!-- /PIEZA -->
+</head>
+<body data-titulo="Manómetros con datos reales" data-origen="Portfolio · Work (notas de PageSpeed de The Campus)">
+<div class="kit-nota">
+  <h1>Manómetros con datos reales</h1>
+  <p>Las notas de Google PageSpeed (u otros datos) dentro de la estética de la web, sin capturas. La escala va de 80 a 100 para que las agujas no apunten todas igual. Al entrar en pantalla, las agujas suben con un pequeño rebote.</p>
+  <p>En Portfolio la esfera era una pintura de Charles y solo la aguja y la nota se dibujaban encima.</p>
+</div>
+
+<!-- PIEZA: html (data-valor = la nota; data-min y data-max = la escala) -->
+<div class="medidores">
+  <figure class="medidor" data-valor="96" data-min="80" data-max="100"><p>Rendimiento</p></figure>
+  <figure class="medidor" data-valor="93" data-min="80" data-max="100"><p>Accesibilidad</p></figure>
+  <figure class="medidor" data-valor="96" data-min="80" data-max="100"><p>Buenas prácticas</p></figure>
+  <figure class="medidor" data-valor="100" data-min="80" data-max="100"><p>SEO</p></figure>
+</div>
+<!-- /PIEZA -->
+
+<!-- PIEZA: script -->
+<script>
+(() => {
+  const BARRIDO = 240;       // grados de la escala, de -120 a +120
+  const medidores = [...document.querySelectorAll('.medidor')];
+  medidores.forEach(m => {
+    const marcas = Array.from({ length: 11 }, (_, i) => {
+      const a = (-BARRIDO / 2 + i * BARRIDO / 10) * Math.PI / 180;
+      return `<line class="marca" x1="${80 + Math.sin(a) * 58}" y1="${80 - Math.cos(a) * 58}" x2="${80 + Math.sin(a) * 66}" y2="${80 - Math.cos(a) * 66}"/>`;
+    }).join('');
+    m.insertAdjacentHTML('afterbegin', `<svg viewBox="0 0 160 160" role="img" aria-label="${m.querySelector('p').textContent}: ${m.dataset.valor}">
+      <circle class="esfera" cx="80" cy="80" r="74"/>${marcas}
+      <line class="aguja" x1="80" y1="80" x2="80" y2="26" style="transform:rotate(${-BARRIDO / 2}deg)"/>
+      <circle cx="80" cy="80" r="6" fill="#b48a4a"/><text x="80" y="122">${m.dataset.valor}</text></svg>`);
+  });
+  const io = new IntersectionObserver(es => es.forEach(e => {
+    if (!e.isIntersecting) return;
+    const m = e.target, v = +m.dataset.valor, min = +m.dataset.min, max = +m.dataset.max;
+    const t = Math.max(0, Math.min(1, (v - min) / (max - min)));
+    m.querySelector('.aguja').style.transform = `rotate(${-BARRIDO / 2 + t * BARRIDO}deg)`;
+    io.unobserve(m);
+  }), { threshold: .6 });
+  medidores.forEach(m => io.observe(m));
+})();
+</script>
+<!-- /PIEZA -->
+<script src="../../../comun/kit.js"></script>
+</body>
+</html>

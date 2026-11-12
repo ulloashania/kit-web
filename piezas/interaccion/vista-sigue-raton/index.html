@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vista que sigue al ratón</title>
+<link rel="stylesheet" href="../../../comun/kit.css">
+<!-- PIEZA: estilos -->
+<style>
+  .lista-trabajos { list-style: none; margin: 0 auto; padding: 0 16px 40svh; max-width: 900px; }
+  .lista-trabajos a { display: flex; justify-content: space-between; gap: 16px; padding: 22px 0; border-bottom: 1px solid var(--linea); text-decoration: none; font: 600 clamp(22px, 4vw, 40px)/1.1 Georgia, serif; }
+  .lista-trabajos a small { font: 14px system-ui; color: var(--suave); align-self: center; }
+  .vista { position: fixed; left: 0; top: 0; z-index: 60; width: 320px; border-radius: 10px; overflow: hidden; pointer-events: none; opacity: 0; scale: .9; transition: opacity .25s, scale .25s; box-shadow: 0 20px 50px #0005; background: #222; }
+  .vista.on { opacity: 1; scale: 1; }
+  .vista-barra { padding: 6px 10px; font: 12px system-ui; color: #ccc; background: #333; }
+  .vista-img { aspect-ratio: 16 / 10; background: var(--c, #555); transition: background .3s; }
+  @media (hover: none), (max-width: 960px) { .vista { display: none; } }
+</style>
+<!-- /PIEZA -->
+</head>
+<body data-titulo="Vista previa que sigue al ratón" data-origen="Portfolio · Work (lista de trabajos)">
+<div class="kit-nota">
+  <h1>Vista previa que sigue al ratón</h1>
+  <p>Al pasar el ratón por un trabajo de la lista, aparece una ventanita junto al cursor que lo sigue con suavidad y va enseñando distintas partes de esa web (cambia cada segundo). Shania lo pidió así en vez del típico círculo de color. Solo en ordenador.</p>
+</div>
+
+<!-- PIEZA: html (data-imagenes = colores o rutas de imágenes separadas por comas) -->
+<ul class="lista-trabajos">
+  <li><a href="#" data-imagenes="#c08a52,#8a5d33,#f2ab82" data-url="lignumdomus.com">Lignum Domus <small>Web · Freelance</small></a></li>
+  <li><a href="#" data-imagenes="#3d5d55,#2a3b40,#5d645f" data-url="the-campus.online">The Campus <small>Web</small></a></li>
+  <li><a href="#" data-imagenes="#5b4a6e,#8a6bb0,#2a2436" data-url="gofacing.com">GoFacing <small>Web</small></a></li>
+</ul>
+<div class="vista" data-vista aria-hidden="true"><div class="vista-barra"></div><div class="vista-img"></div></div>
+<!-- /PIEZA -->
+
+<!-- PIEZA: script -->
+<script>
+(() => {
+  const vista = document.querySelector('[data-vista]');
+  if (!matchMedia('(hover: hover)').matches || innerWidth <= 960) return;
+  const img = vista.querySelector('.vista-img'), barra = vista.querySelector('.vista-barra');
+  // Con imágenes de verdad: img.style.backgroundImage = `url(${src})` y precargarlas con new Image().src
+  const pon = v => v.startsWith('#') ? img.style.setProperty('--c', v) : (img.style.background = `center/cover url(${v})`);
+  let reloj, px = 0, py = 0, gx = 0, gy = 0, visible = false;
+  document.querySelectorAll('[data-imagenes]').forEach(fila => {
+    const lista = fila.dataset.imagenes.split(',');
+    fila.addEventListener('pointerenter', e => {
+      let i = 0;
+      pon(lista[0]);
+      barra.textContent = fila.dataset.url;
+      if (!visible) { px = e.clientX; py = e.clientY; }
+      visible = true;
+      vista.classList.add('on');
+      clearInterval(reloj);
+      reloj = setInterval(() => { i = (i + 1) % lista.length; pon(lista[i]); }, 950);
+    });
+    fila.addEventListener('pointerleave', () => { visible = false; vista.classList.remove('on'); clearInterval(reloj); });
+  });
+  addEventListener('pointermove', e => { gx = e.clientX; gy = e.clientY; }, { passive: true });
+  const mueve = () => {
+    px += (gx - px) * .14; py += (gy - py) * .14;          // va detrás del ratón, con retraso suave
+    const w = vista.offsetWidth, h = vista.offsetHeight;
+    const x = Math.min(innerWidth - w - 16, px + 24), y = Math.min(innerHeight - h - 16, Math.max(70, py - h / 2));
+    vista.style.transform = `translate3d(${x}px,${y}px,0)`;
+    requestAnimationFrame(mueve);
+  };
+  requestAnimationFrame(mueve);
+})();
+</script>
+<!-- /PIEZA -->
+<script src="../../../comun/kit.js"></script>
+</body>
+</html>

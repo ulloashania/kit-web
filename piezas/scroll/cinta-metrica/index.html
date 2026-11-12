@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cinta métrica</title>
+<link rel="stylesheet" href="../../../comun/kit.css">
+<!-- PIEZA: estilos -->
+<style>
+  .cinta-zona { --cinta: clamp(3.75rem, 7vw, 6rem); --color: #f99a31; --marcas: #1c211e; --punta: #f2ab82; max-width: 760px; margin: 0 auto; padding: 0 16px; }
+  .cinta-caja { width: calc(var(--cinta) * 1.9); height: calc(var(--cinta) * 1.2); background: var(--marcas); border-radius: 18px 18px 6px 6px; }
+  .cinta { --pull: 1; position: relative; margin: 0; padding: 1.5rem 0 0; list-style: none; }
+  /* La cinta es un ::before que crece con --pull (0 recogida, 1 fuera) */
+  .cinta::before {
+    content: ""; position: absolute; inset: 0 auto auto 0; width: var(--cinta); height: calc(var(--pull) * 100%);
+    background-color: var(--color);
+    background-image: linear-gradient(var(--marcas) 2px, transparent 2px), linear-gradient(var(--marcas) 1px, transparent 1px);
+    background-position: left bottom; background-size: 42% 64px, 22% 8px; background-repeat: repeat-y;
+  }
+  .cinta::after { content: ""; position: absolute; opacity: calc(var(--pull) * 100); top: calc(var(--pull) * 100% - 4px); left: -4px; width: calc(var(--cinta) + 8px); height: 10px; background: var(--punta); border-radius: 0 0 4px 4px; }
+  .cinta li { position: relative; padding: 0 0 clamp(3.25rem, 6vw, 5rem) calc(var(--cinta) + clamp(1.25rem, 3vw, 2.5rem)); }
+  .cinta li:last-child { padding-bottom: 1rem; }
+  .cinta-num { position: absolute; top: .1rem; left: 0; width: var(--cinta); padding-right: .5rem; font: 700 clamp(1.75rem, 3.5vw, 2.75rem)/1 system-ui; text-align: right; color: var(--marcas); }
+  .cinta h3 { margin: 0 0 .5rem; font-size: 1.4rem; }
+  .cinta p { margin: 0; color: var(--suave); }
+  /* Con JS: los pasos aparecen cuando la punta llega a ellos, con un rebote */
+  .cinta.animada { --pull: 0; }
+  .animada :is(.cinta-num, h3, p) { opacity: 0; transition: opacity .45s ease-out, transform .8s cubic-bezier(.2, 1.35, .4, 1); }
+  .animada .cinta-num { transform: scale(.4); transform-origin: right center; }
+  .animada :is(h3, p) { transform: translateX(-1.75rem); }
+  .animada p { transition-delay: .09s; }
+  .animada .llega :is(.cinta-num, h3, p) { opacity: 1; transform: none; }
+  @media (prefers-color-scheme: dark) { .cinta-num { color: var(--color); } }
+</style>
+<!-- /PIEZA -->
+</head>
+<body data-titulo="Cinta métrica con muelle" data-origen="Lignum Domus · Home y About (el proceso)">
+<div class="kit-nota">
+  <h1>Cinta métrica con muelle</h1>
+  <p>La cinta sale de su caja siguiendo el scroll, con efecto muelle (se pasa un poco y vuelve). Cada paso aparece cuando la punta llega a él. Al subir, la cinta se recoge. En Lignum, en pantallas anchas, sale hacia la derecha con la sección fija.</p>
+  <p>El muelle son dos líneas: la velocidad se acerca al objetivo (<code>0.018</code>) y se frena (<code>0.84</code>). Sube el primero para más rapidez, baja el segundo para menos rebote.</p>
+</div>
+<p class="kit-baja">Baja ↓</p>
+
+<!-- PIEZA: html -->
+<div class="cinta-zona">
+  <div class="cinta-caja" aria-hidden="true"></div>
+  <ol class="cinta" data-cinta>
+    <li><span class="cinta-num">01</span><h3>Visita</h3><p>Medimos el espacio y hablamos de lo que quieres.</p></li>
+    <li><span class="cinta-num">02</span><h3>Diseño</h3><p>Planos y materiales para aprobar.</p></li>
+    <li><span class="cinta-num">03</span><h3>Fabricación</h3><p>Todo se hace en el taller propio.</p></li>
+    <li><span class="cinta-num">04</span><h3>Instalación</h3><p>El mismo equipo lo monta en casa.</p></li>
+  </ol>
+</div>
+<!-- /PIEZA -->
+
+<p class="kit-fin">Sigue la página</p>
+
+<!-- PIEZA: script -->
+<script>
+(() => {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const cinta = document.querySelector('[data-cinta]');
+  const pasos = [...cinta.querySelectorAll('li')];
+  cinta.classList.add('animada');
+  let pos = 0, vel = 0, objetivo = 0, andando = false, todos = false;
+  const lim = v => Math.max(0, Math.min(v, 1));
+
+  const pinta = () => {
+    vel = (vel + (objetivo - pos) * .018) * .84;    // el muelle
+    pos += vel;
+    const quieta = Math.abs(objetivo - pos) <= .0005 && Math.abs(vel) <= .0005;
+    if (quieta) pos = objetivo;
+    cinta.style.setProperty('--pull', lim(pos).toFixed(4));
+    const punta = pos * cinta.offsetHeight;
+    pasos.forEach(p => p.classList.toggle('llega', todos || punta >= p.offsetTop + 6));
+    if (quieta) andando = false; else requestAnimationFrame(pinta);
+  };
+  const sigue = () => {
+    const { top, height } = cinta.getBoundingClientRect();
+    const sale = (innerHeight * .7 - top) / height;
+    const vuelve = (innerHeight * .6 - (top + height)) / (innerHeight * .3);
+    todos = sale >= 1;
+    objetivo = vuelve > 0 ? 1 - lim(vuelve) : lim(sale);
+    if (!andando && objetivo !== pos) { andando = true; requestAnimationFrame(pinta); }
+  };
+  addEventListener('scroll', sigue, { passive: true });
+  addEventListener('resize', sigue);
+  sigue();
+})();
+</script>
+<!-- /PIEZA -->
+<script src="../../../comun/kit.js"></script>
+</body>
+</html>

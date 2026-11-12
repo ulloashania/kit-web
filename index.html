@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kit web</title>
+<meta name="description" content="Animaciones, piezas y plantillas reutilizables de las webs de Shania Ulloa.">
+<link rel="stylesheet" href="comun/kit.css">
+<style>
+  .portada { max-width: 1100px; margin: 0 auto; padding: 64px 16px 24px; }
+  .portada h1 { font-size: clamp(40px, 8vw, 84px); line-height: 1; margin: 0 0 14px; letter-spacing: -.02em; }
+  .portada > p { color: var(--suave); max-width: 60ch; margin: 0; }
+  .grupo { max-width: 1100px; margin: 0 auto; padding: 32px 16px; }
+  .grupo h2 { font-size: 22px; margin: 0 0 4px; }
+  .grupo > p { color: var(--suave); margin: 0 0 18px; }
+  .rejilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; list-style: none; margin: 0; padding: 0; }
+  .rejilla a { display: grid; gap: 6px; height: 100%; padding: 18px; border: 1px solid var(--linea); border-radius: 12px; background: var(--tarjeta); text-decoration: none; transition: border-color .2s, translate .2s; }
+  .rejilla a:hover { border-color: var(--acento); translate: 0 -2px; }
+  .rejilla b { font-size: 17px; }
+  .rejilla span { color: var(--suave); font-size: 14px; }
+  .rejilla small { color: var(--acento); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  .pie-kit { max-width: 1100px; margin: 0 auto; padding: 32px 16px 64px; color: var(--suave); font-size: 14px; }
+</style>
+</head>
+<body>
+<header class="portada">
+  <h1>Kit web</h1>
+  <p>Animaciones, piezas y plantillas sacadas de mis webs para usarlas en otras. Cada pieza funciona sola: ábrela, mira cómo se mueve y pulsa «Ver código» para copiarla.</p>
+</header>
+
+<section class="grupo">
+  <h2>Animaciones con el scroll</h2>
+  <p>Secciones altas con el contenido fijo: el scroll cuenta una historia.</p>
+  <ul class="rejilla">
+    <li><a href="piezas/scroll/personaje-camina/"><small>Portfolio</small><b>Personaje que camina</b><span>Anda con el scroll y se para a leer cada cartel.</span></a></li>
+    <li><a href="piezas/scroll/camara-sigue/"><small>Portfolio</small><b>Cámara que sigue al personaje</b><span>Mundo lateral con ascensor en zigzag entre plantas.</span></a></li>
+    <li><a href="piezas/scroll/zoom-puerta/"><small>Portfolio</small><b>Zoom a través de una puerta</b><span>La puerta se abre, la cámara entra y cambia la escena.</span></a></li>
+    <li><a href="piezas/scroll/palanca-engranajes/"><small>Portfolio</small><b>Palanca y engranajes</b><span>Cada tirón engancha un engranaje: una etapa por tirón.</span></a></li>
+    <li><a href="piezas/scroll/capas-parallax/"><small>Portfolio</small><b>Capas a distinta velocidad</b><span>Parallax horizontal: cielo, medio y primer plano.</span></a></li>
+    <li><a href="piezas/scroll/cinta-metrica/"><small>Lignum Domus</small><b>Cinta métrica con muelle</b><span>Sale con rebote y descubre los pasos del proceso.</span></a></li>
+    <li><a href="piezas/scroll/mueble-se-monta/"><small>Lignum Domus</small><b>Mueble que se monta</b><span>Las piezas llegan de fuera y encajan por orden.</span></a></li>
+    <li><a href="piezas/scroll/logo-viaja/"><small>Lignum Domus</small><b>Logo que viaja</b><span>Un logo baja de parada en parada por toda la página.</span></a></li>
+    <li><a href="piezas/scroll/miniaturas-fusion/"><small>Lignum Domus</small><b>Miniaturas que se fusionan</b><span>Se juntan en abanico y viajan a la foto siguiente.</span></a></li>
+  </ul>
+</section>
+
+<section class="grupo">
+  <h2>Entradas</h2>
+  <p>Lo primero que se ve al llegar.</p>
+  <ul class="rejilla">
+    <li><a href="piezas/entradas/collage-fotos/"><small>Lignum Domus</small><b>Collage de fotos que se abre</b><span>Nueve fotos forman un collage y se abren en aros.</span></a></li>
+    <li><a href="piezas/entradas/tela-ondea/"><small>Portfolio</small><b>Tela que ondea</b><span>Un dirigible arrastra un lema en una tela con viento.</span></a></li>
+  </ul>
+</section>
+
+<section class="grupo">
+  <h2>Cosas que se tocan</h2>
+  <p>Arrastrar, girar, pasar el ratón, abrir.</p>
+  <ul class="rejilla">
+    <li><a href="piezas/interaccion/mesa-objetos/"><small>Portfolio</small><b>Mesa con objetos</b><span>Se cogen, se lanzan y sus sombras siguen a la lámpara.</span></a></li>
+    <li><a href="piezas/interaccion/esfera-tarjetas/"><small>Portfolio</small><b>Esfera de tarjetas</b><span>Gira sola o arrastrándola, con inercia.</span></a></li>
+    <li><a href="piezas/interaccion/discos-pasan/"><small>Portfolio</small><b>Discos que pasan</b><span>Ruedan de derecha a izquierda con el scroll.</span></a></li>
+    <li><a href="piezas/interaccion/rueda-titulos/"><small>Portfolio</small><b>Rueda de títulos</b><span>Los títulos giran en una rueda gigante.</span></a></li>
+    <li><a href="piezas/interaccion/persiana-tambor/"><small>Portfolio</small><b>Persiana y tambor</b><span>La placa se abre y el ratón elige en un tambor 3D.</span></a></li>
+    <li><a href="piezas/interaccion/cajones-archivador/"><small>Portfolio</small><b>Cajones de archivador</b><span>Cada cajón saca una pantalla con su contenido.</span></a></li>
+    <li><a href="piezas/interaccion/manometros/"><small>Portfolio</small><b>Manómetros con datos</b><span>Notas de PageSpeed con agujas que suben.</span></a></li>
+    <li><a href="piezas/interaccion/carrusel-curvo/"><small>Portfolio</small><b>Carrusel curvo de vídeos</b><span>En arco 3D con reflejo; el del centro se reproduce.</span></a></li>
+    <li><a href="piezas/interaccion/vista-sigue-raton/"><small>Portfolio</small><b>Vista previa que sigue al ratón</b><span>Una ventanita enseña la web al pasar por la lista.</span></a></li>
+  </ul>
+</section>
+
+<section class="grupo">
+  <h2>Ambiente y texto</h2>
+  <p>Detalles que hacen que todo parezca vivo.</p>
+  <ul class="rejilla">
+    <li><a href="piezas/ambiente/humo-neon-charcos/"><small>Portfolio</small><b>Humo, neón, farol, charcos y polvo</b><span>Canvas ligero y luces que parpadean.</span></a></li>
+    <li><a href="piezas/texto/efectos-texto/"><small>Portfolio</small><b>Efectos de texto</b><span>Letra a letra, borde pintado, frase con scroll, contadores y cinta.</span></a></li>
+  </ul>
+</section>
+
+<section class="grupo">
+  <h2>Plantillas</h2>
+  <p>Puntos de partida para una web nueva. Se copian enteras.</p>
+  <ul class="rejilla">
+    <li><a href="https://github.com/ulloashania/kit-web/tree/main/plantillas/astro-base"><small>Lignum Domus</small><b>Base de Astro</b><span>Layout, menú, pie, colores y páginas. Sin contenido de cliente.</span></a></li>
+    <li><a href="plantillas/web-sin-librerias/"><small>Portfolio</small><b>Web sin librerías</b><span>HTML, CSS y JS a mano, con animaciones básicas.</span></a></li>
+  </ul>
+</section>
+
+<footer class="pie-kit">Hecho con HTML, CSS y JavaScript, sin librerías. Las tecnologías que uso están en el README.</footer>
+</body>
+</html>

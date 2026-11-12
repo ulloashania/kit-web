@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mueble que se monta</title>
+<link rel="stylesheet" href="../../../comun/kit.css">
+<!-- PIEZA: estilos -->
+<style>
+  .montaje-pin { height: 260svh; }
+  .montaje-pin > div { position: sticky; top: 0; height: 100svh; display: grid; place-items: center; padding: 16px; }
+  .montaje { position: relative; width: min(90vw, 640px); aspect-ratio: 4 / 3; border-radius: 14px; background: linear-gradient(#e9e2d4 78%, #c9b896 78%); overflow: hidden; }
+  /* Cada pieza es un trozo de la foto del mueble montado: misma imagen de fondo, recortada por posición.
+     Aquí son colores; en Lignum era background-image: url(mueble-frontal.webp) en todas */
+  .pieza { position: absolute; will-change: transform, opacity; border-radius: 3px; }
+  .montaje.hecho .pieza { box-shadow: 0 0 0 1px #0001; }
+</style>
+<!-- /PIEZA -->
+</head>
+<body data-titulo="Mueble que se monta pieza a pieza" data-origen="Lignum Domus · Home (fabricación)">
+<div class="kit-nota">
+  <h1>Mueble que se monta pieza a pieza</h1>
+  <p>Con el scroll, cada pieza llega desde fuera girada y pequeña, y encaja en su sitio por orden: zócalo, costados, cajones, puertas, encimera y estantes. Al bajar, se desmonta.</p>
+  <p>Cada pieza dice de dónde viene en <code>data-from="x,y,tamaño"</code> (x e y en anchos del mueble). El suavizado depende del tiempo, no de los fotogramas, para que vaya igual en ordenadores lentos.</p>
+</div>
+
+<!-- PIEZA: html -->
+<section class="montaje-pin" data-montaje-pin>
+  <div>
+    <div class="montaje" data-montaje>
+      <i class="pieza" data-from="0,1.2,.6"   style="left:10%;top:70%;width:80%;height:6%;background:#5a3d26"></i>
+      <i class="pieza" data-from="-1.2,0,.7"  style="left:10%;top:18%;width:4%;height:52%;background:#8a5d33"></i>
+      <i class="pieza" data-from="1.2,0,.7"   style="left:86%;top:18%;width:4%;height:52%;background:#8a5d33"></i>
+      <i class="pieza" data-from="-.8,1,.5"   style="left:14%;top:52%;width:36%;height:18%;background:#a87543"></i>
+      <i class="pieza" data-from=".8,1,.5"    style="left:50%;top:52%;width:36%;height:18%;background:#b07c48"></i>
+      <i class="pieza" data-from="-1,-.4,.5"  style="left:14%;top:24%;width:24%;height:28%;background:#c08a52"></i>
+      <i class="pieza" data-from="1,-.4,.5"   style="left:62%;top:24%;width:24%;height:28%;background:#c08a52"></i>
+      <i class="pieza" data-from="0,-1.2,.6"  style="left:8%;top:14%;width:84%;height:4%;background:#3b3a35"></i>
+      <i class="pieza" data-from="0,-.9,.4"   style="left:38%;top:30%;width:24%;height:2%;background:#7a5029"></i>
+      <i class="pieza" data-from="0,-.9,.4"   style="left:38%;top:42%;width:24%;height:2%;background:#7a5029"></i>
+    </div>
+  </div>
+</section>
+<!-- /PIEZA -->
+
+<p class="kit-fin">Sigue la página</p>
+
+<!-- PIEZA: script -->
+<script>
+(() => {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const pin = document.querySelector('[data-montaje-pin]');
+  const montaje = pin.querySelector('[data-montaje]');
+  const piezas = [...montaje.querySelectorAll('.pieza')].map(el => {
+    const [x, y, size] = el.dataset.from.split(',').map(Number);
+    return { el, x, y, size };
+  });
+  const clamp = v => Math.max(0, Math.min(v, 1));
+  const ease = t => t * t * (3 - 2 * t);
+  const mix = (a, b, t) => a + (b - a) * t;
+  // Suavizado por tiempo: va igual a 30 que a 120 fotogramas por segundo
+  const suaviza = (ritmo, antes, ahora) => 1 - Math.exp(-ritmo * Math.min(ahora - antes, 200) / 1000);
+
+  const dibuja = p => {
+    const { width, height } = montaje.getBoundingClientRect();
+    piezas.forEach(({ el, x, y, size }, i) => {
+      const empieza = (i / piezas.length) * .82;
+      const t = ease(clamp((p - empieza) / .18)), lejos = 1 - t;
+      el.style.transform = `translate(${x * width * lejos}px,${y * height * lejos}px) rotate(${(i % 2 ? 3 : -3) * lejos}deg) scale(${mix(size, 1, t)})`;
+      el.style.opacity = clamp(t * 3);
+    });
+    montaje.classList.toggle('hecho', p >= .995);
+  };
+
+  let hecho = 0, quiero = 0, andando = false, tiempo = 0;
+  const paso = ahora => {
+    hecho += (quiero - hecho) * suaviza(8, tiempo || ahora - 16, ahora);
+    tiempo = ahora;
+    if (Math.abs(quiero - hecho) < .001) hecho = quiero;
+    dibuja(hecho);
+    if (hecho === quiero) { andando = false; tiempo = 0; } else requestAnimationFrame(paso);
+  };
+  const sigue = () => {
+    const { top, height } = pin.getBoundingClientRect();
+    const antes = innerHeight * .25;     // empieza un poco antes de quedar fijo
+    quiero = clamp((antes - top) / (antes + (height - innerHeight) * .68));
+    if (!andando) { andando = true; requestAnimationFrame(paso); }
+  };
+  addEventListener('scroll', sigue, { passive: true });
+  addEventListener('resize', sigue);
+  dibuja(0);
+  sigue();
+})();
+</script>
+<!-- /PIEZA -->
+<script src="../../../comun/kit.js"></script>
+</body>
+</html>

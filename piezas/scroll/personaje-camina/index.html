@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Personaje que camina</title>
+<link rel="stylesheet" href="../../../comun/kit.css">
+<!-- PIEZA: estilos -->
+<style>
+  /* La calle mide lo que diga el JS: más scroll = más camino */
+  .calle { position: relative; }
+  .calle-pin { position: sticky; top: 0; height: 100svh; overflow: hidden; background: linear-gradient(#2a3b40, #556a6a 70%, #3b3a35 70%); }
+  .calle-mundo { position: absolute; inset: 0 auto 0 0; will-change: transform; }
+  .cartel {
+    position: absolute; top: 18svh; width: min(320px, 70vw); padding: 20px 22px;
+    background: #2b2620; color: #f1e6cf; border: 3px solid #b48a4a; border-radius: 6px;
+    opacity: .35; transform: translateY(-12px); transition: opacity .6s, transform .6s;
+  }
+  .cartel.on { opacity: 1; transform: none; }
+  .cartel h2 { margin: 0 0 6px; font-size: 22px; }
+  .cartel p { margin: 0; font-size: 15px; opacity: .8; }
+  /* Watashi (o tu personaje): un solo elemento con la tira de dibujos de fondo */
+  .andarin {
+    position: absolute; left: 26vw; bottom: 8svh; height: 34svh; aspect-ratio: 1 / 2;
+    background: var(--tira) 0 0 / auto 100% no-repeat;
+  }
+</style>
+<!-- /PIEZA -->
+</head>
+<body data-titulo="Personaje que camina con el scroll" data-origen="Portfolio · Services (la calle)">
+<div class="kit-nota">
+  <h1>Personaje que camina con el scroll</h1>
+  <p>El scroll mueve la calle hacia la izquierda y el personaje cambia de dibujo según la distancia recorrida, así los pies no patinan. Al llegar a cada cartel el paso se frena, se para, mira arriba y se lleva la mano a la barbilla. Si dejas de hacer scroll, se queda quieto.</p>
+  <p>Para usarlo: cambia la tira de dibujos por la tuya (<code>--tira</code>) y ajusta <code>DIBUJOS</code>, <code>ANDAR</code> y <code>LEER</code> a cómo esté ordenada.</p>
+</div>
+
+<!-- PIEZA: html -->
+<section class="calle" data-calle>
+  <div class="calle-pin">
+    <div class="calle-mundo" data-mundo>
+      <article class="cartel"><h2>Diseño web</h2><p>Primer cartel: aquí se para a leer.</p></article>
+      <article class="cartel"><h2>Copy y SEO</h2><p>Segundo cartel.</p></article>
+      <article class="cartel"><h2>Contenido y marca</h2><p>Tercer cartel.</p></article>
+    </div>
+    <div class="andarin" data-andarin role="img" aria-label="Personaje caminando"></div>
+  </div>
+</section>
+<!-- /PIEZA -->
+
+<p class="kit-fin">Fin de la calle</p>
+
+<script src="../../../comun/figura.js"></script>
+<script>document.documentElement.style.setProperty('--tira', `url(${figuraDemo().src})`);</script>
+<!-- PIEZA: script -->
+<script>
+(() => {
+  const calle = document.querySelector('[data-calle]');
+  const pin = calle.firstElementChild;
+  const mundo = calle.querySelector('[data-mundo]');
+  const andarin = calle.querySelector('[data-andarin]');
+  const carteles = [...calle.querySelectorAll('.cartel')];
+  const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+
+  const DIBUJOS = 12;          // cuántos dibujos tiene la tira
+  const ANDAR = 6;             // los primeros 6 son el paso
+  const LEER = [6, 7, 8];      // de pie, mira arriba, mano en la barbilla
+  const RAPIDO = 2.2, LENTO = .6, PARADA = 520; // px de camino por px de scroll; px de scroll parada en cada cartel
+
+  let tramos = [], paradas = [], total = 0, largo = 0, suave = 0, visto = -1;
+
+  // Calcula dónde va cada cartel y cuánto scroll hace falta para recorrer la calle
+  const medir = () => {
+    const vw = innerWidth, sep = Math.max(vw * .9, 700);
+    const pies = andarin.offsetLeft + andarin.offsetWidth / 2;
+    const centros = carteles.map((c, i) => {
+      const x = (i + 1) * sep;
+      c.style.left = `${x}px`;
+      return x - pies;                       // camino hasta quedar debajo del cartel
+    });
+    const zona = sep * .13;
+    total = (carteles.length + 1) * sep;
+    tramos = []; paradas = [];
+    let en = 0, scroll = 0;
+    centros.forEach(c => {
+      tramos.push({ scroll, desde: en, ritmo: RAPIDO });  scroll += (c - zona - en) / RAPIDO;
+      tramos.push({ scroll, desde: c - zona, ritmo: LENTO }); scroll += zona / LENTO;
+      tramos.push({ scroll, desde: c, ritmo: 0 });       paradas.push(scroll); scroll += PARADA;
+      tramos.push({ scroll, desde: c, ritmo: LENTO });   scroll += zona / LENTO;
+      en = c + zona;
+    });
+    tramos.push({ scroll, desde: en, ritmo: RAPIDO });
+    scroll += (total - en) / RAPIDO;
+    largo = scroll;
+    calle.style.height = `${largo + pin.clientHeight}px`;
+    mundo.style.width = `${total + vw}px`;
+  };
+  // Del scroll al camino: busca el tramo y avanza a su ritmo
+  const caminoEn = s => {
+    let t = tramos[0];
+    for (const x of tramos) if (x.scroll <= s) t = x;
+    return Math.min(total, t.desde + (s - t.scroll) * t.ritmo);
+  };
+
+  const frame = () => {
+    const r = calle.getBoundingClientRect();
+    const objetivo = clamp(-r.top / Math.max(1, r.height - innerHeight)) * largo;
+    suave += (objetivo - suave) * (quieto ? 1 : .1);
+    const x = caminoEn(suave);
+    mundo.style.transform = `translate3d(${-x}px,0,0)`;
+
+    // Un ciclo de paso cada ~17 % de su altura de suelo: los pies no resbalan
+    let dibujo = Math.floor(x / (andarin.offsetHeight * .17)) % ANDAR;
+    paradas.forEach(p => {
+      const q = (suave - p) / PARADA;
+      if (q >= 0 && q <= 1) dibujo = q < .12 || q > .9 ? LEER[0] : q < .36 || q > .74 ? LEER[1] : LEER[2];
+    });
+    if (dibujo !== visto) {
+      andarin.style.backgroundPosition = `${dibujo * 100 / (DIBUJOS - 1)}% 0`;
+      visto = dibujo;
+    }
+    const pies = andarin.getBoundingClientRect().right;
+    carteles.forEach(c => c.classList.toggle('on', c.getBoundingClientRect().left < pies + innerWidth * .3));
+    requestAnimationFrame(frame);
+  };
+  medir();
+  addEventListener('resize', medir);
+  frame();
+})();
+</script>
+<!-- /PIEZA -->
+<script src="../../../comun/kit.js"></script>
+</body>
+</html>

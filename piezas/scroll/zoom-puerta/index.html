@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zoom por la puerta</title>
+<link rel="stylesheet" href="../../../comun/kit.css">
+<!-- PIEZA: estilos -->
+<style>
+  .paso { position: relative; height: 400svh; }
+  .paso-pin { position: sticky; top: 0; height: 100svh; overflow: hidden; background: #000; }
+  .paso-fuera { position: absolute; inset: 0; background: linear-gradient(#7c8f99, #a9a08c 72%, #5d5548 72%); will-change: transform; }
+  .puerta { position: absolute; left: 50%; top: 30%; width: 16%; aspect-ratio: 1 / 1.9; translate: -50% 0; perspective: 900px; background: #0b0a09; border: 8px solid #6b4a2b; border-radius: 50% 50% 0 0 / 22% 22% 0 0; overflow: hidden; }
+  .puerta i { position: absolute; top: 0; bottom: 0; width: 50%; background: repeating-linear-gradient(90deg, #8a5d33 0 10px, #7a5029 10px 20px); transition: none; }
+  .puerta i:first-child { left: 0; transform-origin: left; transform: rotateY(calc(var(--abre, 0) * -100deg)); }
+  .puerta i:last-child { right: 0; transform-origin: right; transform: rotateY(calc(var(--abre, 0) * 100deg)); }
+  .paso-velo { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; }
+  .paso-dentro { position: absolute; inset: 0; display: grid; place-items: center; color: #f3e7cc; font: 600 clamp(28px, 6vw, 64px)/1 Georgia, serif; background: radial-gradient(circle at 50% 60%, #4a3726, #120d09 70%); opacity: 0; visibility: hidden; }
+</style>
+<!-- /PIEZA -->
+</head>
+<body data-titulo="Zoom a través de una puerta" data-origen="Portfolio · Services (puerta del taller) y Home (ventana del reloj)">
+<div class="kit-nota">
+  <h1>Zoom a través de una puerta</h1>
+  <p>Con el scroll la puerta se abre, la cámara se acerca a ella hasta que el hueco llena la pantalla, todo se oscurece y aparece la escena de dentro. Sirve igual para una ventana, un reloj o un portal.</p>
+  <p>Truco aprendido: no pasar de unas 3–5 veces de zoom. Con más, el navegador pierde trozos de la imagen al volver hacia arriba.</p>
+</div>
+
+<!-- PIEZA: html -->
+<section class="paso" data-paso>
+  <div class="paso-pin">
+    <div class="paso-fuera" data-fuera>
+      <div class="puerta" data-puerta><i></i><i></i></div>
+    </div>
+    <div class="paso-velo" data-velo></div>
+    <div class="paso-dentro" data-dentro>Ya estás dentro</div>
+  </div>
+</section>
+<!-- /PIEZA -->
+
+<p class="kit-fin">Sigue la página</p>
+
+<!-- PIEZA: script -->
+<script>
+(() => {
+  const paso = document.querySelector('[data-paso]');
+  const fuera = paso.querySelector('[data-fuera]'), puerta = paso.querySelector('[data-puerta]');
+  const velo = paso.querySelector('[data-velo]'), dentro = paso.querySelector('[data-dentro]');
+  const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+  const soft = t => t * t * (3 - 2 * t);
+  const ZOOM = 3.4;            // máximo recomendado
+  let suave = 0;
+
+  const frame = () => {
+    const r = paso.getBoundingClientRect();
+    const p = clamp(-r.top / Math.max(1, r.height - innerHeight));
+    suave += (p - suave) * .12;
+    const abre = soft(clamp(suave / .25));             // 0–25 %: se abre
+    const va = soft(clamp((suave - .2) / .5));         // 20–70 %: la cámara entra
+    const oscuro = clamp((suave - .45) / .25);         // 45–70 %: se oscurece
+    const luz = clamp((suave - .7) / .2);              // 70–90 %: aparece dentro
+    puerta.style.setProperty('--abre', abre);
+    // La puerta se va al centro de la pantalla mientras crece (ox ya es su centro: left 50% y translate -50%)
+    const ox = puerta.offsetLeft, oy = puerta.offsetTop + puerta.offsetHeight * .55;
+    fuera.style.transformOrigin = `${ox}px ${oy}px`;
+    fuera.style.transform = va ? `translate3d(${(innerWidth / 2 - ox) * va}px,${(innerHeight / 2 - oy) * va}px,0) scale(${1 + va * (ZOOM - 1)})` : '';
+    velo.style.opacity = oscuro * oscuro * (1 - luz);
+    dentro.style.opacity = luz;
+    dentro.style.visibility = luz ? 'visible' : 'hidden';
+    requestAnimationFrame(frame);
+  };
+  frame();
+})();
+</script>
+<!-- /PIEZA -->
+<script src="../../../comun/kit.js"></script>
+</body>
+</html>

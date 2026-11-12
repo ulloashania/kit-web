@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Discos que pasan</title>
+<link rel="stylesheet" href="../../../comun/kit.css">
+<!-- PIEZA: estilos -->
+<style>
+  .discos { position: relative; height: 500svh; }
+  .discos-pin { position: sticky; top: 0; height: 100svh; overflow: hidden; display: grid; place-items: center; perspective: 1600px; background: #141210; color: #f1e6cf; }
+  .disco { position: absolute; width: min(56vh, 70vw); aspect-ratio: 1; border-radius: 50%; will-change: transform;
+    background: radial-gradient(circle, #141210 0 6%, var(--c) 6.5% 34%, #1d1b18 34.5%), repeating-radial-gradient(circle, #222 0 2px, #1a1a1a 2px 4px); background-blend-mode: normal; box-shadow: 0 30px 60px #0008; }
+  .disco b { position: absolute; inset: 0; display: grid; place-items: center; font: 600 14px system-ui; color: #141210; }
+  .discos-cuenta { position: absolute; left: 24px; bottom: 24px; font: 700 18px system-ui; }
+  .discos-cuenta b { font-size: 40px; }
+</style>
+<!-- /PIEZA -->
+</head>
+<body data-titulo="Discos que pasan de derecha a izquierda" data-origen="Portfolio · Creative work">
+<div class="kit-nota">
+  <h1>Discos que pasan</h1>
+  <p>Con el scroll los discos ruedan de derecha a izquierda: el del centro se ve grande y de frente, los demás se encogen, giran en 3D y ruedan sobre sí mismos. Un contador marca cuál estás viendo. Idea sacada de una referencia que le gustaba a Shania.</p>
+</div>
+
+<!-- PIEZA: html -->
+<section class="discos" data-discos>
+  <div class="discos-pin">
+    <div class="disco" style="--c:#c8572d"><b>01</b></div>
+    <div class="disco" style="--c:#3d8a7d"><b>02</b></div>
+    <div class="disco" style="--c:#d8b45a"><b>03</b></div>
+    <div class="disco" style="--c:#8a6bb0"><b>04</b></div>
+    <div class="disco" style="--c:#e6a17a"><b>05</b></div>
+    <div class="disco" style="--c:#5d8ab0"><b>06</b></div>
+    <p class="discos-cuenta"><b>01</b> / 06</p>
+  </div>
+</section>
+<!-- /PIEZA -->
+<p class="kit-fin">Sigue la página</p>
+
+<!-- PIEZA: script -->
+<script>
+(() => {
+  const discos = document.querySelector('[data-discos]');
+  const lista = [...discos.querySelectorAll('.disco')];
+  const cuenta = discos.querySelector('.discos-cuenta b');
+  const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+  const avance = el => { const r = el.getBoundingClientRect(); return clamp(-r.top / Math.max(1, r.height - innerHeight)); };
+  let suave = 0, visto = -1;
+  const frame = () => {
+    suave += (avance(discos) * (lista.length - 1) - suave) * (quieto ? 1 : .12);
+    const hueco = Math.min(innerWidth * .46, 760);
+    lista.forEach((d, i) => {
+      const o = i - suave, lejos = Math.abs(o);
+      if (lejos > 2.6) { d.style.display = 'none'; return; }
+      d.style.display = '';
+      const s = 1 - .58 * Math.min(1, lejos);
+      d.style.transform = `translate3d(${o * hueco - Math.sign(o) * hueco * .18 * Math.min(1, lejos)}px,0,0) rotateY(${clamp(o, -1, 1) * -24}deg) rotateZ(${o * 110}deg) scale(${s})`;
+      d.style.zIndex = 10 - Math.round(lejos);
+      d.style.pointerEvents = lejos < .5 ? '' : 'none';
+    });
+    const en = Math.round(suave);
+    if (en !== visto) { cuenta.textContent = String(en + 1).padStart(2, '0'); visto = en; }
+    requestAnimationFrame(frame);
+  };
+  frame();
+})();
+</script>
+<!-- /PIEZA -->
+<script src="../../../comun/kit.js"></script>
+</body>
+</html>

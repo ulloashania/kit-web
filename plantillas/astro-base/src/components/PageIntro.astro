@@ -1,0 +1,14 @@
+---
+// Cabecera de las páginas interiores: título y, debajo, el párrafo explicativo.
+const { title, text } = Astro.props;
+---
+<section class="page-intro">
+  <h1>{title}</h1>
+  {text && <p>{text}</p>}
+</section>
+
+<style>
+  .page-intro { padding: 8.5rem var(--edge) clamp(3rem, 7vw, 5.5rem); background: var(--oscuro); color: var(--blanco); }
+  h1 { max-width: 18ch; font-size: clamp(2.5rem, 6.5vw, 5.75rem); }
+  p { margin-top: 1.5rem; max-width: 56ch; font-size: clamp(1.0625rem, 1.5vw, 1.25rem); }
+</style>

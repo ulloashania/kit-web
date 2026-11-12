@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tela que ondea</title>
+<link rel="stylesheet" href="../../../comun/kit.css">
+<!-- PIEZA: estilos -->
+<style>
+  .cielo { position: relative; height: 80svh; overflow: hidden; background: linear-gradient(#9fc3cf, #e9d9bd); }
+  .nave { position: absolute; left: 0; top: 0; width: min(46vw, 420px); aspect-ratio: 2.4 / 1; will-change: transform; }
+  .nave-cuerpo { position: absolute; inset: 0 0 25% 0; border-radius: 50%; background: radial-gradient(ellipse at 40% 35%, #c9a46a, #6b4a2b); }
+  .nave-cabina { position: absolute; left: 35%; width: 30%; top: 72%; height: 22%; background: #3b2a1c; border-radius: 4px; }
+  .nave-tela { position: absolute; }
+  .nave-texto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } /* para Google y lectores */
+</style>
+<!-- /PIEZA -->
+</head>
+<body data-titulo="Tela que ondea al viento" data-origen="Portfolio · Home (el dirigible)">
+<div class="kit-nota">
+  <h1>Tela que ondea al viento</h1>
+  <p>Un dirigible cruza el cielo arrastrando una tela con un texto. La tela se dibuja en un canvas en 70 tiras verticales, y cada tira sube o baja siguiendo una onda, así la imagen entera se dobla con el viento. Los pliegues se oscurecen o se iluminan según la pendiente.</p>
+  <p>Aquí la tela es un degradado; en Portfolio era una lona pintada por Charles. El texto sigue en el HTML, oculto, para que Google lo lea.</p>
+</div>
+
+<!-- PIEZA: html -->
+<div class="cielo" data-cielo>
+  <div class="nave" data-nave>
+    <canvas class="nave-tela" data-tela aria-hidden="true"></canvas>
+    <div class="nave-cuerpo"></div><div class="nave-cabina"></div>
+    <p class="nave-texto" data-lema>Mitad diseño, mitad marketing</p>
+  </div>
+</div>
+<!-- /PIEZA -->
+<p class="kit-fin">Sigue la página</p>
+
+<!-- PIEZA: script -->
+<script>
+(() => {
+  const cielo = document.querySelector('[data-cielo]');
+  const nave = cielo.querySelector('[data-nave]'), lienzo = nave.querySelector('[data-tela]'), g = lienzo.getContext('2d');
+  const LEMA = nave.querySelector('[data-lema]').textContent;
+  const CRUCE = 30, ENGANCHE = [.12, .78];       // segundos en cruzar; dónde se ata la tela (en partes de la nave)
+  const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // La tela se pinta una vez (aquí un degradado; puede ser drawImage de tu imagen) con el texto encima
+  const tela = document.createElement('canvas');
+  tela.width = 1400; tela.height = 160;
+  const t = tela.getContext('2d');
+  const grad = t.createLinearGradient(0, 0, 0, 160);
+  grad.addColorStop(0, '#efe2c4'); grad.addColorStop(1, '#d8c39a');
+  t.fillStyle = grad; t.fillRect(0, 0, 1400, 160);
+  t.font = '700 58px Georgia, serif'; t.textAlign = 'center'; t.textBaseline = 'middle';
+  t.fillStyle = '#2b1712'; t.globalAlpha = .88;
+  t.fillText(LEMA.toUpperCase(), 680, 86, 1100);
+
+  let geo;
+  const ajusta = () => {
+    const W = nave.offsetWidth, L = .9 * W, hb = .1 * W, hueco = .07 * W, dpr = Math.min(2, devicePixelRatio || 1);
+    const cw = hueco + L + 8, ch = hb * 2.6;
+    Object.assign(lienzo.style, { left: `${ENGANCHE[0] * W - cw}px`, top: `${ENGANCHE[1] * nave.offsetHeight - ch / 2}px`, width: `${cw}px`, height: `${ch}px` });
+    lienzo.width = cw * dpr; lienzo.height = ch * dpr;
+    geo = { W, L, hb, hueco, cw, ch, dpr };
+  };
+  const ondea = s => {
+    if (!geo || geo.W !== nave.offsetWidth) ajusta();
+    const { W, L, hb, hueco, cw, ch, dpr } = geo, ax = cw, ay = ch / 2, N = 70, A = .02 * W;
+    const onda = u => .006 * W * u + A * u * Math.sin(u * 6.5 - s * 3.4);   // más amplitud cuanto más lejos de la nave
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, cw, ch);
+    g.strokeStyle = '#6b5130'; g.lineWidth = 1.5;
+    g.beginPath();
+    g.moveTo(ax, ay); g.lineTo(ax - hueco, ay + onda(0) - hb * .32);
+    g.moveTo(ax, ay); g.lineTo(ax - hueco, ay + onda(0) + hb * .32);
+    g.stroke();
+    const tw = tela.width, th = tela.height, sw = L / N;
+    for (let i = 0; i < N; i++) {
+      const u = i / N, y = ay + onda(u + .5 / N) - hb / 2, dx = ax - hueco - (i + 1) * sw;
+      g.drawImage(tela, tw * (1 - (i + 1) / N), 0, tw / N + .5, th, dx, y, sw + .6, hb);
+      const pend = (onda(u + 1 / N) - onda(u)) / sw;   // pliegues: sombra o brillo según la pendiente
+      g.fillStyle = pend > 0 ? `rgba(0,0,0,${Math.min(.45, pend * 1.6)})` : `rgba(255,236,200,${Math.min(.12, -pend * .5)})`;
+      g.globalCompositeOperation = 'source-atop';
+      g.fillRect(dx, y, sw + .6, hb);
+      g.globalCompositeOperation = 'source-over';
+    }
+  };
+  const inicio = performance.now();
+  const frame = ahora => {
+    const s = ahora / 1000, vw = cielo.clientWidth, vh = cielo.clientHeight, W = nave.offsetWidth;
+    const desde = -W * .2, hasta = vw + W * 1.2;
+    const p = quieto ? .45 : (((ahora - inicio) / 1000 / CRUCE) + .35) % 1;
+    const y = vh * (.18 + .08 * Math.sin(p * Math.PI)) + Math.sin(s * .8) * 6;
+    nave.style.transform = `translate(${desde + (hasta - desde) * p}px,${y}px) rotate(${(Math.sin(s * .6) * .6).toFixed(2)}deg)`;
+    ondea(quieto ? 0 : s);
+    if (!quieto) requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+})();
+</script>
+<!-- /PIEZA -->
+<script src="../../../comun/kit.js"></script>
+</body>
+</html>

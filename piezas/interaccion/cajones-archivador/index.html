@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cajones de archivador</title>
+<link rel="stylesheet" href="../../../comun/kit.css">
+<!-- PIEZA: estilos -->
+<style>
+  .archivo { position: relative; display: grid; place-items: end center; min-height: 80svh; padding: 16px; perspective: 1200px; }
+  .archivador { position: relative; width: min(300px, 80vw); padding: 14px; border-radius: 8px; background: linear-gradient(#5a4632, #3e3022); display: grid; gap: 10px; }
+  .cajon { position: relative; height: 54px; border: 0; border-radius: 4px; background: linear-gradient(#8a6b4a, #6e5338); cursor: pointer; font: 600 14px system-ui; color: #f1e6cf; transform-origin: 50% 100%; transition: transform .6s cubic-bezier(.3, 1.2, .4, 1), box-shadow .3s; }
+  .cajon::after { content: ""; position: absolute; left: 50%; top: 50%; width: 42px; height: 8px; translate: -50% 10px; border-radius: 4px; background: #c9a46a; }
+  .cajon:hover, .cajon:focus-visible { box-shadow: 0 0 0 2px #ffd89a, 0 0 18px #ffd89a66; }
+  .cajon.abierto { transform: translateZ(90px) translateY(6px); box-shadow: 0 20px 30px #0008; }
+  /* La pantalla que sale del cajón */
+  .archivo-pantalla { position: absolute; left: 50%; bottom: 40%; width: min(520px, 90vw); aspect-ratio: 16 / 10; translate: -50% 40px; scale: .6; opacity: 0; pointer-events: none; border: 10px solid #b48a4a; border-radius: 12px; background: #111; color: #fff; display: grid; place-items: center; transition: translate .6s cubic-bezier(.3, 1.2, .4, 1) .15s, scale .6s .15s, opacity .3s .15s; z-index: 5; }
+  .archivo.abierto .archivo-pantalla { translate: -50% 0; scale: 1; opacity: 1; pointer-events: auto; }
+  .archivo-pantalla button { position: absolute; top: 8px; right: 10px; border: 0; background: none; color: #fff; font-size: 26px; cursor: pointer; }
+  .archivo-pantalla h2 { margin: 0; font: 600 28px Georgia, serif; }
+</style>
+<!-- /PIEZA -->
+</head>
+<body data-titulo="Cajones de archivador" data-origen="Portfolio · Work (la sala del archivo)">
+<div class="kit-nota">
+  <h1>Cajones de archivador</h1>
+  <p>Cada cajón guarda un tipo de trabajo. Al elegirlo, el cajón sale hacia ti y de él sube una pantalla con lo que hay dentro. Se cierra con la ×, con Esc o pulsando fuera. En Portfolio, Watashi daba un paso y abría el cajón ella misma.</p>
+</div>
+
+<!-- PIEZA: html -->
+<div class="archivo" data-archivo>
+  <div class="archivo-pantalla" data-pantalla role="dialog" aria-modal="false" aria-label="Contenido del cajón">
+    <button type="button" data-cerrar aria-label="Cerrar">×</button>
+    <h2></h2>
+  </div>
+  <div class="archivador">
+    <button type="button" class="cajon">Webs</button>
+    <button type="button" class="cajon">Revista</button>
+    <button type="button" class="cajon">Social media</button>
+    <button type="button" class="cajon">Vídeo</button>
+    <button type="button" class="cajon">Fotografía</button>
+  </div>
+</div>
+<!-- /PIEZA -->
+<p class="kit-fin">Sigue la página</p>
+
+<!-- PIEZA: script -->
+<script>
+(() => {
+  const archivo = document.querySelector('[data-archivo]');
+  const pantalla = archivo.querySelector('[data-pantalla]');
+  const cajones = [...archivo.querySelectorAll('.cajon')];
+  let abierto = null;
+  const cierra = () => {
+    if (!abierto) return;
+    abierto.classList.remove('abierto');
+    archivo.classList.remove('abierto');
+    abierto.focus({ preventScroll: true });
+    abierto = null;
+  };
+  cajones.forEach(c => c.addEventListener('click', () => {
+    if (abierto === c) return cierra();
+    if (abierto) abierto.classList.remove('abierto');
+    abierto = c;
+    c.classList.add('abierto');
+    pantalla.querySelector('h2').textContent = c.textContent;   // aquí pondrías la imagen o la web del cajón
+    archivo.classList.add('abierto');
+  }));
+  pantalla.querySelector('[data-cerrar]').addEventListener('click', cierra);
+  addEventListener('keydown', e => { if (e.key === 'Escape') cierra(); });
+  document.addEventListener('pointerdown', e => { if (abierto && !pantalla.contains(e.target) && !e.target.closest('.cajon')) cierra(); });
+})();
+</script>
+<!-- /PIEZA -->
+<script src="../../../comun/kit.js"></script>
+</body>
+</html>
