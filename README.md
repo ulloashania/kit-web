@@ -61,7 +61,7 @@ npx serve .
 - Lignum Domus: Fraunces (títulos) e Instrument Sans (texto).
 
 ### Imágenes y herramientas
-- Imágenes en **WebP**; las ilustraciones las genera Charles (ChatGPT).
+- Imágenes en **WebP**; ilustraciones creadas con IA y retocadas a mano.
 - **Git y GitHub** (GitHub Desktop) para el código.
 - Publicación: **Cloudflare Pages** (Portfolio) y **Hostinger** conectado a GitHub (Lignum Domus).
 - Medición: **Google PageSpeed** y Site Kit.
